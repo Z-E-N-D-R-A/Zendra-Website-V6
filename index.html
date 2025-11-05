@@ -1,4 +1,4 @@
-n<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   
 <head>
@@ -7,8 +7,226 @@ n<!DOCTYPE html>
 
   <title>Zendra Website | Home</title>
 
-  <link href="zendra-website-v6/assets/logo.png" rel="icon">
-  <link href="zendra-website-v6/css/style.css" rel="stylesheet">
+  <style>
+    /* ------------- RESET & GLOBAL ------------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Poppins", sans-serif;
+    background: #0d0d0d;
+    color: white;
+    overflow-x: hidden;
+}
+
+h1,
+h2 {
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+p {
+    color: #ccc;
+    line-height: 1.7;
+}
+
+/* ------------- HERO SECTION ------------- */
+.hero {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+}
+
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url("https://cdn.discordapp.com/attachments/1289007499155996673/1435445280249086012/Untitled_design.gif?ex=690bfe18&is=690aac98&hm=6b8fb71f44685be749eacced1498add2a8cd09c286b28f4241694d8c62d73e88&");
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.05);
+    transition: transform 0.3s ease-out;
+    z-index: -2;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8));
+    z-index: -1;
+}
+
+.hero-content {
+    max-width: 700px;
+    z-index: 2;
+    transform: translateY(30px);
+    opacity: 0;
+    animation: fadeInUp 1.5s ease forwards;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
+.hero-content h1 span {
+    color: #ff4d5a;
+    font-weight: 700;
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.cta {
+    padding: 14px 36px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #ff4d5a, #ff2e40);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 15px rgba(255, 77, 90, 0.5);
+}
+
+.cta:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(255, 77, 90, 0.8);
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    font-size: 2rem;
+    color: #ff4d5a;
+    opacity: 0.7;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(8px);
+    }
+}
+
+/* Text reveal animation */
+.reveal-text {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 1.2s ease-out;
+}
+
+.reveal-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.delay-1 {
+    transition-delay: 0.3s;
+}
+
+.delay-2 {
+    transition-delay: 0.6s;
+}
+
+/* ------------- CONTENT SECTIONS ------------- */
+section.content {
+    min-height: 100vh;
+    padding: 80px 10%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+section.content img {
+    width: 45%;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
+    object-fit: cover;
+}
+
+.text {
+    width: 45%;
+}
+
+/* Scroll animation */
+.hidden {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 1.2s ease;
+}
+
+.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.slide-left {
+    transform: translateX(-100px);
+}
+
+.slide-right {
+    transform: translateX(100px);
+}
+
+.show.slide-left,
+.show.slide-right {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* ------------- FOOTER ------------- */
+footer {
+    text-align: center;
+    padding: 50px;
+    background: #111;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+/* ------------- ANIMATIONS ------------- */
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2.4rem;
+    }
+
+    section.content {
+        flex-direction: column;
+    }
+
+    section.content img,
+    .text {
+        width: 100%;
+    }
+}
+  </style>
 </head>
 
 <body>
