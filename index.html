@@ -1,85 +1,80 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Zendra Website V1</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <style>
-      /* Add the banner styles here */
-      #banner {
-        display: flex;
-        justify-content: space-between;
-        font-family: arial;
-        padding: 10px;
-        position: relative; /* Add this line for positioning */
-      }
+  
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
 
-      .visitor-count {
-        font-weight: bold;
-        font-size: 20px;
-        font-family: arial;
-        position: absolute; /* Add this line for positioning */
-        top: 5px; /* Add this line for positioning */
-        right: 5px; /* Add this line for positioning */
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Include the banner -->
-    <div id="banner">
-      <div class="visitor-count"></div>
-      <nav>
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="youtube.html">YouTube</a></li>
-          <li><a href="support.html" class="active">Help and Support</a></li>
-        </ul>
-      </nav>
+  <title>Zendra Website | Home</title>
+
+  <link href="assets/logo.png" rel="icon">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="overlay"></div>
+    <div class="hero-content">
+      <h1 class="reveal-text">Welcome to <span>Your Channel</span></h1>
+      <p class="reveal-text delay-1">
+        Dive into creativity, passion, and stories that move you.
+      </p>
+      <button class="cta reveal-text delay-2">Explore Now</button>
     </div>
-    
-    <!-- Add the page content -->
-    <div class="container">
-      <div class="left">
-        <h1>Welcome to my website!!!</h1>
-        <p>Hey, I am Zendra クレイジー! I am a YouTuber and Mobile Gamer. Make sure to check out my social media below!</p>
-<br><br>
-        <h2>Social Media</h2>
-        <ul class="social-media">
-          <li><button class="red" onclick="window.location.href='https://www.youtube.com/@zendra_brawl'">YouTube</button></li>
-          <li><button class="white" onclick="window.location.href='http://www.tiktok.com/@zendra_brawl'">TikTok</button></li>
-          <li><button class="dark-blue" onclick="window.location.href='https://discord.gg/VbUFdhEjNq'">Discord</button></li>
-          <li><button class="light-blue" onclick="window.location.href='https://twitter.com/zendra_brawl'">Twitter</button></li>
-          <li><button class="purple" onclick="window.location.href='https://www.instagram.com/zendra_brawl/'">Instagram</button></li>
-          <li><button class="orange" onclick="window.location.href='https://www.twitch.tv/zendra_brawl'">Twitch</button></li>
-          <li><button class="pink" onclick="window.location.href='https://www.reddit.com/user/zendra_gaming'">Reddit</button></li>
-        </ul>
-      </div>
+    <div class="scroll-indicator">▼</div>
+  </section>
 
-      <!-- Add the image -->
-      <div class="right">
-        <img src="https://cdn.discordapp.com/attachments/1289007499155996673/1289436402605621379/Zendra_Logo_1_Without_Background.png?ex=67f1fc3a&is=67f0aaba&hm=202e3f5c19dc23ba02e23225682c963dd853f098c6450dab9af05a5a5ff54803&" alt="Zendra クレイジー">
-      </div>
+  <!-- SECTION 1 (example content) -->
+  <section class="content">
+    <div class="text slide-right hidden">
+      <h2>Highlights</h2>
+      <p>Experience visually stunning moments from your favorite episodes and projects, crafted to inspire and excite.</p>
     </div>
-    
-    <script>
-      // Add the visitor count JavaScript code here
-      var visitorCountEls = document.querySelectorAll('.visitor-count');
+    <img src="https://picsum.photos/id/1015/600/400" alt="Highlights" class="hidden slide-left">
+  </section>
 
-      // Get the visitor count from local storage or set it to 0
-      var visitorCount = localStorage.getItem('visitorCount') || 0;
+  <!-- SECTION 2 -->
+  <section class="content">
+    <img src="https://picsum.photos/id/1025/600/400" alt="Community" class="hidden slide-left">
+    <div class="text slide-right hidden">
+      <h2>Join the Story</h2>
+      <p>Become part of a growing community that celebrates creativity and emotion through each frame.</p>
+    </div>
+  </section>
 
-      // Update the visitor count element
-      visitorCountEls.forEach(function(visitorCountEl) {
-        visitorCountEl.innerHTML = visitorCount;
+  <footer>
+    © 2025 Your Channel Name. All rights reserved.
+  </footer>
+
+  <script>
+    // Scroll-triggered animation
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('show');
+        }
       });
+    }, { threshold: 0.15 });
 
-      // Increment the visitor count when visiting the home page
-      if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
-        visitorCount++;
-        localStorage.setItem('visitorCount', visitorCount);
-        visitorCountEls.forEach(function(visitorCountEl) {
-          visitorCountEl.innerHTML = visitorCount;
-        });
-      }
-    </script>
-  </body>
+    const hiddenElements = document.querySelectorAll('.hidden');
+    hiddenElements.forEach(el => observer.observe(el));
+
+    // Parallax effect on hero background
+    window.addEventListener('scroll', () => {
+      const bg = document.querySelector('.hero-bg');
+      const scroll = window.scrollY;
+      bg.style.transform = `translateY(${scroll * 0.3}px) scale(1.05)`;
+    });
+
+    // Text reveal animation on load
+    window.addEventListener('load', () => {
+      const texts = document.querySelectorAll('.reveal-text');
+      texts.forEach((el, i) => {
+        setTimeout(() => el.classList.add('visible'), i * 300);
+      });
+    });
+  </script>
+</body>
 </html>
