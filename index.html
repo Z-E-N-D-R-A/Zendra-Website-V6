@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
+  <title>Zentral-Web | Home</title>
+
+  <link href="Assets/Icon.png" rel="icon">
+  <link href="CSS/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <img src="Assets/Logo.png" alt="Logo">
+      <span>Zendra クレイジー</span>
+    </div>
+    <nav class="nav-links">
+      <a href="index.html"><b>Home</b></a>
+      <a href="videos.html">Videos</a>
+      <a href="zentral.html">Zentral</a>
+      <div class="dropdown">
+        <button class="dropbtn">More ▾</button>
+        <div class="dropdown-content">
+          <a href="projects.html">Projects</a>
+          <a href="newsletter.html">Newsletter</a>
+          <a href="others.html">Others</a>
+        </div>
+      </div>
+    </nav>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="overlay"></div>
+    <canvas class="particle-canvas"></canvas>
+
+    <div class="hero-content">
+      <h2 class="reveal-text">Welcome to the</h2>
+      <h1 class="reveal-text"><span>Zentral-Web</span></h1>
+      <p class="reveal-text delay-1">Be crazy, stay crazy.</p>
+      <button class="cta reveal-text delay-2" id="exploreBtn">Explore Now</button>
+    </div>
+
+    <div class="scroll-indicator">▼</div>
+  </section>
+
+  <section class="content" id="about">
+    <img src="Assets/Image_1.png" alt="Channel" class="hidden slide-left">
+    <div class="text slide-right hidden">
+      <h2>About Me</h2>
+      <p>Hey! I'm ゼンダ・クレイジー (Zenda Kureiji), or just call me <b>Zendra</b>.<br>Blah blah blah...</p>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="text slide-left hidden">
+      <h2 class="right-aligned">Zentralverse</h2>
+      <p class="right-aligned">Yada yada noise cancellation...</p>
+    </div>
+    <img src="Assets/Image_2.png" alt="Community" class="hidden slide-right">
+  </section>
+
+  <section class="social" id="socials">
+    <h2 class="social-title hidden">Follow Me On</h2>
+    <div class="social-buttons">
+      <a href="https://www.youtube.com/@zendra_brawl" class="social-btn yt hidden" target="_blank"> <i class="fab fa-youtube"></i> YouTube</a>
+      <a href="https://www.instagram.com/zendra_brawl/" class="social-btn ig hidden" target="_blank"> <i class="fab fa-instagram"></i> Instagram</a>
+      <a href="http://www.tiktok.com/@zendra_brawl" class="social-btn tk hidden" target="_blank"> <i class="fab fa-tiktok"></i> TikTok</a>
+      <a href="https://discord.gg/VbUFdhEjNq" class="social-btn dc hidden" target="_blank"> <i class="fab fa-discord"></i> Discord</a>
+      <a href="https://www.twitch.tv/zendra_brawl" class="social-btn tw hidden" target="_blank"> <i class="fab fa-twitch"></i> Twitch</a>
+      <a href="https://twitter.com/zendra_brawl" class="social-btn x hidden" target="_blank"> <i class="fab fa-x-twitter"></i> X</a>
+    </div>
+  </section>  
+
+  <footer id="contact">
+    <div class="footer-socials">
+      <a href="https://www.youtube.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+      <a href="https://www.instagram.com/zendra_brawl/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+      <a href="http://www.tiktok.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+      <a href="https://discord.gg/VbUFdhEjNq" target="_blank"><i class="fa-brands fa-discord"></i></a>
+      <a href="https://www.twitch.tv/zendra_brawl" target="_blank"><i class="fa-brands fa-twitch"></i></a>
+      <a href="https://twitter.com/zendra_brawl" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+    </div>
+    2025 Zentral-Web | Powered by KuraWorks
+  </footer>
+
+  <script>
+    /* -------- Scroll-triggered animations -------- */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('show');
+      });
+    }, { threshold: 0.2 });
+    document.querySelectorAll('.hidden').forEach(el => observer.observe(el));
+
+    /* --- Social buttons pop-in --- */
+    const socialBtns = document.querySelectorAll('.social-btn');
+    const socialObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          socialBtns.forEach((btn, i) => {
+            setTimeout(() => {
+              btn.style.animation = `popIn 0.4s ease forwards`;
+            }, i * 150);
+          });
+          socialObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    socialObserver.observe(document.querySelector('.social-buttons'));
+    
+    /* --- Title fade-in --- */
+    const titleObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('show');
+          titleObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    titleObserver.observe(document.querySelector('.social-title'));
+
+
+    /* -------- Parallax Background -------- */
+    window.addEventListener('scroll', () => {
+      const bg = document.querySelector('.hero-bg');
+      bg.style.transform = `translateY(${window.scrollY * 0.3}px) scale(1.05)`;
+    });
+
+    /* -------- Staggered Text Reveal -------- */
+    window.addEventListener('load', () => {
+      document.querySelectorAll('.reveal-text').forEach((el, i) => {
+        setTimeout(() => el.classList.add('visible'), i * 300);
+      });
+    });
+
+    /* -------- Smooth Scroll -------- */
+    document.getElementById('exploreBtn').addEventListener('click', () => {
+      document.querySelector('#about').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    /* -------- Particle Glow Effect -------- */
+    const canvas = document.querySelector('.particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for (let i = 0; i < 35; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2 + 1,
+        dx: (Math.random() - 0.5) * 0.5,
+        dy: (Math.random() - 0.5) * 0.5,
+        color: `hsla(${Math.random() * 360}, 80%, 70%, 0.5)`
+      });
+    }
+
+    function drawParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      });
+      requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+
+    const headerEl = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      const maxOpacity = 0.45;
+      const maxBlur = 12;
+      const pct = Math.min(y / 300, 1);
+      headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+      headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+      
+      if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+    });
+
+    const dropdown = document.querySelector('.dropdown');
+    const dropbtn = dropdown.querySelector('.dropbtn');
+    const dropdownContent = dropdown.querySelector('.dropdown-content');
+    let isDropdownOpen = false;
+
+    dropbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isDropdownOpen = !isDropdownOpen;
+      dropdown.classList.toggle('show', isDropdownOpen);
+    });
+    dropdown.addEventListener('mouseenter', () => {
+      dropdown.classList.add('show');
+      isDropdownOpen = true;
+    });
+    dropdown.addEventListener('mouseleave', (e) => {
+      const rect = dropdownContent.getBoundingClientRect();
+      const buffer = 60;
+      const checkMouse = (ev) => {
+        if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+          dropdown.classList.remove('show');
+          isDropdownOpen = false;
+          window.removeEventListener('mousemove', checkMouse);
+        }
+      };
+      window.addEventListener('mousemove', checkMouse);
+    });
+
+    window.addEventListener('scroll', () => {
+      dropdown.classList.remove('show');
+      isDropdownOpen = false;
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+        isDropdownOpen = false;
+      }
+    });
+
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+  </script>
+</body>
+</html>

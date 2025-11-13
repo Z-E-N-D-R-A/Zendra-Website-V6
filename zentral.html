@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
+  <title>Zentral-Web | Zentral</title>
+
+  <link href="Assets/Icon.png" rel="icon">
+  <link href="CSS/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="Assets/Logo.png" alt="Logo">
+            <span>Zendra クレイジー</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="videos.html">Videos</a>
+            <a href="zentral.html"><b>Zentral</b></a>
+            <div class="dropdown">
+                <button class="dropbtn">More ▾</button>
+                <div class="dropdown-content">
+                    <a href="projects.html">Projects</a>
+                    <a href="newsletter.html">Newsletter</a>
+                    <a href="others.html">Others</a>
+                </div>
+            </div>
+        </nav>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </header>
+    <!-- Arcade Game, Live Chat --> 
+    <section class="activity-section">
+        <h1 class="title">Welcome to Zentral</h1>
+        <p class="subtitle">Choose an activity below to join the experience</p>
+
+        <div class="activity-container">
+            <div class="fancy-card arcade-card" onclick="window.location.href='arcade.html'">
+                <div class="glow"></div>
+                <i class="fa-solid fa-gamepad"></i>
+                <h2>Arcade Arena</h2>
+                <p>Compete in fast-paced mini-games and climb the global leaderboard. Challenge yourself and earn Zentral
+                    points!</p>
+                <a href="arcade.html" class="fancy-btn">Enter Now</a>
+            </div>
+    
+            <div class="fancy-card chat-card" onclick="window.location.href='chat.html'">
+                <div class="glow"></div>
+                <i class="fa-solid fa-commenting"></i>
+                <h2>Live Chat Hub</h2>
+                <p>Connect instantly with fans around the world. Drop reactions, chat live, and share your Zentral moments!
+                </p>
+                <a href="Chat/chat.html" class="fancy-btn">Join Now</a>
+            </div>
+        </div>
+    </section>
+    
+    <div class="section-divider" ></div>
+    
+    <section class="story1-section">
+        <h2 class="story1-title">Chapter 1 - The Story of Zendra & Kura</h2>
+        <p class="story-text">
+            In the vast digital realm known as Zentral, three forces shape the world — Zendra, the enigmatic creator;
+            Kura, the mischievous disruptor; and the Zentrals, digital entities born from balance and chaos.
+            As fans, you become part of their legacy — builders, challengers, and dreamers in a world where
+            creativity and energy merge into one.
+        </p>
+    </section>
+
+    <section class="story2-section">
+        <h2 class="story2-title">Chapter 2 - The Evolution of Zentrals</h2>
+        <p class="story-text">
+            In the vast digital realm known as Zentral, three forces shape the world — Zendra, the enigmatic creator;
+            Kura, the mischievous disruptor; and the Zentrals, digital entities born from balance and chaos.
+            As fans, you become part of their legacy — builders, challengers, and dreamers in a world where
+            creativity and energy merge into one.
+        </p>
+    </section>
+    <footer>
+        <div class="footer-socials">
+            <a href="https://www.youtube.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.instagram.com/zendra_brawl/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="http://www.tiktok.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://discord.gg/VbUFdhEjNq" target="_blank"><i class="fa-brands fa-discord"></i></a>
+            <a href="https://www.twitch.tv/zendra_brawl" target="_blank"><i class="fa-brands fa-twitch"></i></a>
+            <a href="https://twitter.com/zendra_brawl" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+        </div>
+        2025 Zentral-Web | Powered by KuraWorks
+    </footer>
+    
+    <script>
+        const headerEl = document.querySelector('header');
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            const maxOpacity = 0.45;
+            const maxBlur = 12;
+            const pct = Math.min(y / 300, 1);
+            headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+            headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+
+            if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+        });
+
+        const dropdown = document.querySelector('.dropdown');
+        const dropbtn = dropdown.querySelector('.dropbtn');
+        const dropdownContent = dropdown.querySelector('.dropdown-content');
+        let isDropdownOpen = false;
+
+        dropbtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isDropdownOpen = !isDropdownOpen;
+            dropdown.classList.toggle('show', isDropdownOpen);
+        });
+        dropdown.addEventListener('mouseenter', () => {
+            dropdown.classList.add('show');
+            isDropdownOpen = true;
+        });
+        dropdown.addEventListener('mouseleave', (e) => {
+            const rect = dropdownContent.getBoundingClientRect();
+            const buffer = 60;
+            const checkMouse = (ev) => {
+                if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+                    dropdown.classList.remove('show');
+                    isDropdownOpen = false;
+                    window.removeEventListener('mousemove', checkMouse);
+                }
+            };
+            window.addEventListener('mousemove', checkMouse);
+        });
+
+        window.addEventListener('scroll', () => {
+            dropdown.classList.remove('show');
+            isDropdownOpen = false;
+        });
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+                isDropdownOpen = false;
+            }
+        });
+
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

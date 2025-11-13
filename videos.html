@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zentral-Web | Videos</title>
+    <link href="Assets/Icon.png" rel="icon">
+    <link href="CSS/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <header>
+      <div class="logo">
+        <img src="Assets/Logo.png" alt="Logo">
+        <span>Zendra クレイジー</span>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="Videos.html" class="active"><b>Videos</b></a>
+        <a href="zentral.html">Zentral</a>
+        <div class="dropdown">
+          <button class="dropbtn">More ▾</button>
+          <div class="dropdown-content">
+            <a href="projects.html">Projects</a>
+            <a href="newsletter.html">Newsletter</a>
+            <a href="others.html">Others</a>
+          </div>
+        </div>
+      </nav>
+          <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    </header>
+  
+    <section class="stats-section">
+      <div class="count-container">
+        <div class="platform ig">
+          <h3>Instagram</h3>
+          <div id="igCount">0</div>
+          <a href="https://www.instagram.com/zendra_brawl/" target="_blank" class="follow-btn ig-btn">Follow</a>
+        </div>
+        <div class="platform yt"><span>
+          <h3><span>YouTube</span></h3>
+          <div id="ytCount">0</div>
+          <a href="https://www.youtube.com/channel/UCaWAxGQH0nU3w5PXDppmcvQ/?sub_confirmation=1" target="_blank" class="follow-btn yt-btn">Subscribe</a>
+          </span>
+        </div>
+        <div class="platform tk">
+          <h3>TikTok</h3>
+          <div id="tiktokCount">0</div>
+          <a href="http://www.tiktok.com/@zendra_brawl" target="_blank" class="follow-btn tk-btn">Follow</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="suggested" id="suggestedSection"></section>
+  
+    <section class="videos-gallery">
+      <h2>Recent Videos</h2>
+      <div id="videoGrid" class="video-grid"></div>
+    </section>
+
+    <footer>
+      <div class="footer-socials">
+        <a href="https://www.youtube.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://www.instagram.com/zendra_brawl/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a href="http://www.tiktok.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://discord.gg/VbUFdhEjNq" target="_blank"><i class="fa-brands fa-discord"></i></a>
+        <a href="https://www.twitch.tv/zendra_brawl" target="_blank"><i class="fa-brands fa-twitch"></i></a>
+        <a href="https://twitter.com/zendra_brawl" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+      </div>
+      2025 Zentral-Web | Powered by KuraWorks
+    </footer>
+  
+    <script>
+      const YT_API_KEY = "AIzaSyASpo1GSqi3cEgjFnL-Th0VPvvzdSoKFQI";
+      const CHANNEL_ID = "UCaWAxGQH0nU3w5PXDppmcvQ";
+  
+      /* -------- Fetch YouTube Data -------- */
+      async function updateYouTubeStats() {
+        try {
+          const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${YT_API_KEY}`);
+          const data = await res.json();
+          const stats = data.items[0].statistics;
+          animateCount("ytCount", Number(stats.subscriberCount));
+        } catch (err) {
+          console.error("YouTube API Error:", err);
+        }
+      }
+
+      /* -------- Animate Count -------- */
+      function animateCount(id, target) {
+        let count = 0;
+        const el = document.getElementById(id);
+        const increment = target / 50;
+        const timer = setInterval(() => {
+          count += increment;
+          el.textContent = Math.floor(count).toLocaleString();
+          if (count >= target) clearInterval(timer);
+        }, 40);
+      }
+  
+      function initFollowerCounts() {
+        updateYouTubeStats();
+        animateCount("igCount", 1055);
+        animateCount("tiktokCount", 1391);
+      }
+      
+      async function loadSuggestedData() {
+          const videoId = "a0kRmWHs-H0";
+          const playlistId = "PLE9_yXA2umvKX27H9yC5u4xE8aQ0wXH4L";
+          const section = document.getElementById("suggestedSection");
+          section.innerHTML = "";
+
+          const [videoRes, playlistRes] = await Promise.all([
+            fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${YT_API_KEY}`),
+            fetch(`https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&id=${playlistId}&key=${YT_API_KEY}`)
+          ]);
+
+          const videoData = await videoRes.json();
+          const playlistData = await playlistRes.json();
+
+          /* === Suggested Video === */
+          if (videoData.items && videoData.items.length) {
+            const v = videoData.items[0];
+            const videoUrl = `https://youtu.be/${videoId}`;
+            const videoHTML = `
+            <div class="suggested-content">
+              <h2>Suggested Video</h2>
+              <div class="suggested-thumbnail" data-url="${videoUrl}">
+                <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="${v.snippet.title}">
+                <div class="play-overlay"><i class="fa-solid fa-play"></i></div>
+              </div>
+              <div class="suggested-info">
+                <h3>${v.snippet.title}</h3>
+                <p>Uploaded ${timeAgo(v.snippet.publishedAt)} • Video</p>
+              </div>
+            </div>`;
+            section.insertAdjacentHTML("beforeend", videoHTML);
+          }
+
+          /* === Suggested Playlist === */
+          if (playlistData.items && playlistData.items.length) {
+            const p = playlistData.items[0];
+            const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+            const playlistThumb = "https://img.youtube.com/vi/rQo1wFpkcmc/hqdefault.jpg";
+            const playlistHTML = `
+            <div class="suggested-content">
+              <h2>Suggested Playlist</h2>
+              <div class="suggested-thumbnail playlist" data-url="${playlistUrl}">
+                <div class="playlist-stack first"></div>
+                <div class="playlist-stack second"></div>
+                <img src="${playlistThumb}" alt="${p.snippet.title}">
+                <div class="play-overlay"><i class="fa-solid fa-play"></i></div>
+              </div>
+              <div class="suggested-info">
+                <h3>${p.snippet.title}</h3>
+                <p>${p.contentDetails.itemCount} videos • Playlist</p>
+              </div>
+            </div>`;
+            section.insertAdjacentHTML("beforeend", playlistHTML);
+          }
+
+          document.querySelectorAll('.suggested-thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', () => {
+              const url = thumb.getAttribute('data-url');
+              window.open(url, '_blank');
+            });
+          });
+        }
+  
+      function timeAgo(dateString) {
+        const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+        const intervals = { year: 31536000, month: 2592000, week: 604800, day: 86400, hour: 3600, minute: 60 };
+        for (let key in intervals) {
+          const val = Math.floor(seconds / intervals[key]);
+          if (val >= 1) return `${val} ${key}${val > 1 ? 's' : ''} ago`;
+        }
+        return "Just now";
+      }
+  
+      /* -------- Fetch YouTube Videos -------- */
+      const numVideos = 12;
+      async function loadYouTubeVideos() {
+        try {
+          const res = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${YT_API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=${numVideos}`);
+          const data = await res.json();
+          const videoGrid = document.getElementById("videoGrid");
+  
+          for (const item of data.items) {
+              if (item.id.kind === "youtube#video") {
+                  const videoId = item.id.videoId;
+                  const title = item.snippet.title;
+                  const thumbnail = item.snippet.thumbnails.medium.url;
+                  const publishedAt = item.snippet.publishedAt;
+
+                  const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&key=${YT_API_KEY}`);
+                  const statsData = await statsRes.json();
+                  const views = statsData.items[0]?.statistics?.viewCount || 0;
+
+                  const card = document.createElement("div");
+                  card.className = "video-card";
+                  card.style.cursor = "pointer";
+
+                  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                  card.innerHTML = `<div class="video-thumb"><img src="${thumbnail}" alt="${title}"></div><div class="video-info"><h4>${title}</h4><p>${Number(views).toLocaleString()} views • ${timeAgo(publishedAt)}</p></div>`;
+
+                  card.addEventListener("click", () => {
+                      window.open(videoUrl, "_blank");
+                  });
+
+                  videoGrid.appendChild(card);
+              }
+          }
+        } catch (err) {
+          console.error("Error loading videos:", err);
+        }
+      }
+  
+      window.addEventListener("load", () => {
+        initFollowerCounts();
+        loadYouTubeVideos();
+        loadSuggestedData();
+      });
+
+      const headerEl = document.querySelector('header');
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        const maxOpacity = 0.45;
+        const maxBlur = 12;
+        const pct = Math.min(y / 300, 1);
+        headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+        headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+
+        if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+      });
+
+      const dropdown = document.querySelector('.dropdown');
+      const dropbtn = dropdown.querySelector('.dropbtn');
+      const dropdownContent = dropdown.querySelector('.dropdown-content');
+      let isDropdownOpen = false;
+
+      dropbtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isDropdownOpen = !isDropdownOpen;
+        dropdown.classList.toggle('show', isDropdownOpen);
+      });
+      dropdown.addEventListener('mouseenter', () => {
+        dropdown.classList.add('show');
+        isDropdownOpen = true;
+      });
+      dropdown.addEventListener('mouseleave', (e) => {
+        const rect = dropdownContent.getBoundingClientRect();
+        const buffer = 60;
+        const checkMouse = (ev) => {
+          if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+            dropdown.classList.remove('show');
+            isDropdownOpen = false;
+            window.removeEventListener('mousemove', checkMouse);
+          }
+        };
+        window.addEventListener('mousemove', checkMouse);
+      });
+
+      window.addEventListener('scroll', () => {
+        dropdown.classList.remove('show');
+        isDropdownOpen = false;
+      });
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+          dropdown.classList.remove('show');
+          isDropdownOpen = false;
+        }
+      });
+
+      const hamburger = document.querySelector('.hamburger');
+      const navLinks = document.querySelector('.nav-links');
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navLinks.classList.toggle('active');
+      });
+    </script>
+  </body>
+</html>
