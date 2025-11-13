@@ -1,0 +1,15 @@
+{
+  "name": "zentral-chat-backend",
+  "version": "1.0.0",
+  "description": "Socket.IO chat backend for Zentral-Web",
+  "main": "index.js",
+  "engines": { "node": ">=16" },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
