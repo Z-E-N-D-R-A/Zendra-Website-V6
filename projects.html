@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
+  <title>Zentral-Web | Projects</title>
+
+  <link href="Assets/Icon.png" rel="icon">
+  <link href="CSS/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link  rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Poppins:wght@400;600&display=swap">
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="Assets/Logo.png" alt="Logo">
+            <span>Zendra クレイジー</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="videos.html">Videos</a>
+            <a href="zentral.html">Zentral</a>
+            <div class="dropdown">
+                <button class="dropbtn">More ▾</button>
+                <div class="dropdown-content">
+                    <a href="projects.html"><b>Projects</b></a>
+                    <a href="newsletter.html">Newsletter</a>
+                    <a href="others.html">Others</a>
+                </div>
+            </div>
+        </nav>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </header>
+
+    <section class="blackboard-section">
+        <div class="blackboard">
+            <svg class="chalk-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+                <text x="100" y="70" class="chalk-stroke yellow">Gem Guardians</text>
+                <text x="550" y="90" class="chalk-stroke pink">Z.E.N.D.R.A.</text>
+                <text x="50" y="230" class="chalk-stroke blue">1.23.23</text>
+                <text x="600" y="320" class="chalk-stroke pink">Zentrals</text>
+                <text x="250" y="380" class="chalk-stroke yellow">Kura</text>
+                <text x="280" y="225" class="chalk-stroke white">Project STARR</text>
+            </svg>
+    
+            <div class="chalks">
+                <div class="chalk white"></div>
+                <div class="chalk yellow"></div>
+                <div class="chalk pink"></div>
+                <div class="chalk blue"></div>
+                <div class="eraser"></div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="projects-section">
+        <h1>All Projects</h1>
+        <div class="project-grid">
+            <div class="project-card">
+                <h3>Project Starr</h3>
+                <p>Dates: Dec 2025 – Present</p>
+                <p>Code: PF0325 | PF0426</p>
+                <span class="status active">Active</span>
+                <a href="Projects/starr.html" class="view-btn">View More</a>
+            </div>
+    
+            <div class="project-card">
+                <h3>Project Zen</h3>
+                <p>Dates: Mar 2024 – Dec 2024</p>
+                <p>Code: PZ0024</p>
+                <span class="status cancelled">Cancelled</span>
+                <a href="Projects/zen.html" class="view-btn">View More</a>
+            </div>
+    
+            <div class="project-card">
+                <h3>Project Gem Guardians</h3>
+                <p>Dates: Nov 2023 – Jan 2024</p>
+                <p>Code: PF0123</p>
+                <span class="status published">Published</span>
+                <a href="Projects/gem.html" class="view-btn">View More</a>
+            </div>
+
+            <div class="project-card">
+                <h3>Project City of Dreams</h3>
+                <p>Dates: Sep 2023 – Jun 2024</p>
+                <p>Code: PG0223</p>
+                <span class="status cancelled">Cancelled</span>
+                <a href="Projects/cod.html" class="view-btn">View More</a>
+            </div>
+
+            <div class="project-card">
+                <h3>Project Elementaland</h3>
+                <p>Dates: Feb 2025 – Aug 2025</p>
+                <p>Code: PG0325</p>
+                <span class="status cancelled">Cancelled</span>
+                <a href="Projects/element.html" class="view-btn">View More</a>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="footer-socials">
+            <a href="https://www.youtube.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+            <a href="https://www.instagram.com/zendra_brawl/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="http://www.tiktok.com/@zendra_brawl" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+            <a href="https://discord.gg/VbUFdhEjNq" target="_blank"><i class="fa-brands fa-discord"></i></a>
+            <a href="https://www.twitch.tv/zendra_brawl" target="_blank"><i class="fa-brands fa-twitch"></i></a>
+            <a href="https://twitter.com/zendra_brawl" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+        </div>
+        2025 Zentral-Web | Powered by KuraWorks
+    </footer>
+    
+    <script>
+    function animateChalkStroke(el, delay = 0) {
+        el.style.strokeDashoffset = '1000';
+        el.style.opacity = '0.3';
+
+        const anim = el.animate([
+            { strokeDashoffset: 1000, opacity: 0.3 },
+            { strokeDashoffset: 0, opacity: 0.95 }
+        ], {
+            duration: 5000, 
+            easing: 'ease',
+            delay: delay,
+            fill: 'forwards'
+        });
+
+        return anim;
+    }
+
+    function replayHandwriting() {
+        const texts = Array.from(document.querySelectorAll('.chalk-stroke'));
+        texts.forEach((t, i) => {
+            animateChalkStroke(t, i * 500);
+        });
+    }
+    setInterval(() => { replayHandwriting(); }, 8000);
+
+    const headerEl = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      const maxOpacity = 0.45;
+      const maxBlur = 12;
+      const pct = Math.min(y / 300, 1);
+      headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+      headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+      
+      if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+    });
+
+    const dropdown = document.querySelector('.dropdown');
+    const dropbtn = dropdown.querySelector('.dropbtn');
+    const dropdownContent = dropdown.querySelector('.dropdown-content');
+    let isDropdownOpen = false;
+
+    dropbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isDropdownOpen = !isDropdownOpen;
+      dropdown.classList.toggle('show', isDropdownOpen);
+    });
+    dropdown.addEventListener('mouseenter', () => {
+      dropdown.classList.add('show');
+      isDropdownOpen = true;
+    });
+    dropdown.addEventListener('mouseleave', (e) => {
+      const rect = dropdownContent.getBoundingClientRect();
+      const buffer = 60;
+      const checkMouse = (ev) => {
+        if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+          dropdown.classList.remove('show');
+          isDropdownOpen = false;
+          window.removeEventListener('mousemove', checkMouse);
+        }
+      };
+      window.addEventListener('mousemove', checkMouse);
+    });
+
+    window.addEventListener('scroll', () => {
+      dropdown.classList.remove('show');
+      isDropdownOpen = false;
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+        isDropdownOpen = false;
+      }
+    });
+
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
+  <title>Zentral-Web | Chat</title>
+
+  <link href="../Assets/Icon.png" rel="icon">
+  <link rel="stylesheet" href="../CSS/chat.css">
+  <link rel="stylesheet" href="../CSS/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <img src="../Assets/Logo.png" alt="Logo">
+      <span>Zendra クレイジー</span>
+    </div>
+    <nav class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="videos.html">Videos</a>
+      <a href="zentral.html"><b>Zentral</b></a>
+      <div class="dropdown">
+        <button class="dropbtn">More ▾</button>
+        <div class="dropdown-content">
+          <a href="projects.html">Projects</a>
+          <a href="newsletter.html">Newsletter</a>
+          <a href="others.html">Others</a>
+        </div>
+      </div>
+    </nav>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <div class="chat-wrapper">
+    <button id="toggleSidebar" class="sidebar-toggle">☰</button>
+  
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-inner">
+        <h2>Online Users</h2>
+        <div id="onlineCount" class="online-count">0 online</div>
+        <div id="who" class="who-list"></div>
+      </div>
+    </aside>
+  
+    <main class="chat-area">
+      <div id="newMsgIndicator" class="new-msg-indicator hidden">New messages</div>
+  
+      <div class="messages-scroll">
+        <button id="loadOlderBtn" class="load-more">Load older messages</button>
+        <div id="loadingOlder" class="loading-indicator">Loading…</div>
+  
+        <div id="messages"></div>
+      </div>
+  
+      <div class="input-bar">
+        <input id="messageInput" type="text" placeholder="Type a message…" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="mobile-action-sheet" class="mobile-action-sheet">
+    <div class="sheet-option" data-action="reply">
+      <div class="fa-solid fas fa-reply"></div> Reply
+    </div>
+    <div class="sheet-option" data-action="edit">
+      <div class="fa-solid fas fa-edit"></div> Edit
+    </div>
+    <div class="sheet-option" data-action="react">
+      <div class="fa-solid far fa-grin-squint"></div> React
+    </div>
+    <div class="sheet-option" data-action="delete">
+      <div class="fa-solid far fa-trash-alt"></div> Delete
+    </div>
+    <div class="sheet-option" data-action="report">
+      <div class="fa-solid fas fa-exclamation-triangle"></div> Report
+    </div>
+    <div class="sheet-cancel">Cancel</div>
+  </div>
+  <div id="sheet-backdrop" class="sheet-backdrop"></div>
+
+  <div id="prompt" class="prompt">
+    <div class="prompt-box">
+      <h3>Welcome — pick a display name</h3>
+      <input id="promptName" placeholder="Your name (or Guest)" maxlength="30" />
+      <div class="prompt-actions">
+        <button id="joinBtn" class="btn">Join Chat</button>
+      </div>
+  
+      <div id="recovery-row" style="margin-top:14px; display:flex; gap:8px; align-items:center;">
+        <input id="recoveryInput" placeholder="Enter recovery code"
+          style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+        <button id="restoreBtn" style="padding:8px 12px; border-radius:6px; cursor:pointer;">Restore</button>
+      </div>
+  
+      <div id="recoveryDisplay" style="margin-top:12px; display:none; gap:8px; align-items:center;">
+        <span style="background:#111; color:#fff; padding:8px 12px; border-radius:6px;" id="recoveryCodeText"></span>
+        <button id="copyRecoveryBtn" style="padding:6px 10px; border-radius:6px; cursor:pointer;">Copy</button>
+        <small style="color:#ccc; margin-left:8px;">Save this code to restore your identity later.</small>
+      </div>
+    </div>
+  </div>
+
+  <script src="chat.js"></script>
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("toggleSidebar");
+
+    toggleBtn.onclick = () => {
+      // Mobile mode → slide-in panel
+      if (window.innerWidth < 700) {
+        sidebar.classList.toggle("open");
+      } else {
+        // Desktop mode → collapse
+        sidebar.classList.toggle("collapsed");
+      }
+    };
+
+    const headerEl = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      const maxOpacity = 0.45;
+      const maxBlur = 12;
+      const pct = Math.min(y / 300, 1);
+      headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+      headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+
+      if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+    });
+
+    const dropdown = document.querySelector('.dropdown');
+    const dropbtn = dropdown.querySelector('.dropbtn');
+    const dropdownContent = dropdown.querySelector('.dropdown-content');
+    let isDropdownOpen = false;
+
+    dropbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isDropdownOpen = !isDropdownOpen;
+      dropdown.classList.toggle('show', isDropdownOpen);
+    });
+    dropdown.addEventListener('mouseenter', () => {
+      dropdown.classList.add('show');
+      isDropdownOpen = true;
+    });
+    dropdown.addEventListener('mouseleave', (e) => {
+      const rect = dropdownContent.getBoundingClientRect();
+      const buffer = 60;
+      const checkMouse = (ev) => {
+        if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+          dropdown.classList.remove('show');
+          isDropdownOpen = false;
+          window.removeEventListener('mousemove', checkMouse);
+        }
+      };
+      window.addEventListener('mousemove', checkMouse);
+    });
+
+    window.addEventListener('scroll', () => {
+      dropdown.classList.remove('show');
+      isDropdownOpen = false;
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+        isDropdownOpen = false;
+      }
+    });
+
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+  </script>
+</body>
+</html>
