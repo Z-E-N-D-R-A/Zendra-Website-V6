@@ -23,15 +23,15 @@
       <span>Zendra クレイジー</span>
     </div>
     <nav class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="videos.html">Videos</a>
-      <a href="zentral.html"><b>Zentral</b></a>
+      <a href="../index.html">Home</a>
+      <a href="../videos.html">Videos</a>
+      <a href="../zentral.html"><b>Zentral</b></a>
       <div class="dropdown">
         <button class="dropbtn">More ▾</button>
         <div class="dropdown-content">
-          <a href="projects.html">Projects</a>
-          <a href="newsletter.html">Newsletter</a>
-          <a href="others.html">Others</a>
+          <a href="../projects.html">Projects</a>
+          <a href="../newsletter.html">Newsletter</a>
+          <a href="../others.html">Others</a>
         </div>
       </div>
     </nav>
@@ -43,7 +43,9 @@
   </header>
 
   <div class="chat-wrapper">
-    <button id="toggleSidebar" class="sidebar-toggle">☰</button>
+    <button id="toggleSidebar" class="sidebar-toggle">
+      <div class="fa-solid fas fa-grip-horizontal"></div>
+    </button>
   
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-inner">
@@ -52,19 +54,25 @@
         <div id="who" class="who-list"></div>
       </div>
     </aside>
-  
+    <div id="sidebar-backdrop"></div>
+
     <main class="chat-area">
       <div id="newMsgIndicator" class="new-msg-indicator hidden">New messages</div>
-  
+    
       <div class="messages-scroll">
         <button id="loadOlderBtn" class="load-more">Load older messages</button>
         <div id="loadingOlder" class="loading-indicator">Loading…</div>
-  
+    
         <div id="messages"></div>
       </div>
-  
+    
+      <div id="typingIndicator" class="typing-indicator hidden">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
       <div class="input-bar">
-        <input id="messageInput" type="text" placeholder="Type a message…" />
+        <textarea id="messageInput" contenteditable="true" placeholder="Type a message…"></textarea>
         <button id="sendBtn">Send</button>
       </div>
     </main>
@@ -114,19 +122,6 @@
 
   <script src="chat.js"></script>
   <script>
-    const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("toggleSidebar");
-
-    toggleBtn.onclick = () => {
-      // Mobile mode → slide-in panel
-      if (window.innerWidth < 700) {
-        sidebar.classList.toggle("open");
-      } else {
-        // Desktop mode → collapse
-        sidebar.classList.toggle("collapsed");
-      }
-    };
-
     const headerEl = document.querySelector('header');
     window.addEventListener('scroll', () => {
       const y = window.scrollY;
@@ -184,5 +179,6 @@
       navLinks.classList.toggle('active');
     });
   </script>
-</body>
-</html>
+  </body>
+  
+  </html>
