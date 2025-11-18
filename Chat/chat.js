@@ -1,8 +1,3 @@
-/* ----------------------------------------------------------
-   chat.js — Firebase Global Chat (Realtime DB + Anonymous Auth)
-   Cleaned + fixes: defensive DOM lookups, header spacing, grouping fixes
----------------------------------------------------------- */
-
 /* ===== FIREBASE CONFIG ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyAmI86EcG9Zvln4n4s39tcPNlCYfPjO16s",
@@ -14,13 +9,10 @@ const firebaseConfig = {
   measurementId: "G-F663TF4T6K",
   databaseURL: "https://zentral-chat-b7ca0-default-rtdb.firebaseio.com"
 };
-/* =============================================================== */
 
 firebase.initializeApp(firebaseConfig);
-
-/* ===== state + refs ===== */
-const domCache = {}; // messageId → DOM element
-const messages = {}; // id → data (cached)
+const domCache = {};
+const messages = {};
 const db = firebase.database();
 const messagesRef = db.ref("messages");
 const presenceRef = db.ref("presence");
@@ -28,13 +20,9 @@ const recoveryRef = db.ref("recovery");
 
 let user = null;
 let authReady = false;
-
-/* ===================================================================
-   QUEUE — prevent join/send from running BEFORE firebase auth is ready
-==================================================================== */
-let pendingJoin = null;      // { name, restoredInfo }
-let pendingSend = false;     // boolean
-let pendingRestore = null;   // code string
+let pendingJoin = null;
+let pendingSend = false;
+let pendingRestore = null;
 
 function tryProcessQueue() {
   if (!authReady || !user) return;
@@ -80,23 +68,20 @@ if (!clientId) {
 
 let displayName = localStorage.getItem("z_name") || "";
 
-/* =============== DOM HOOKS (defensive) =============== */
+/* =============== DOM HOOKS =============== */
 const promptEl = document.getElementById("prompt") || null;
 const promptName = document.getElementById("promptName") || null;
 const joinBtn = document.getElementById("joinBtn") || null;
 
 let messageInput = document.getElementById("message") || document.getElementById("messageInput") || document.querySelector(".input-bar input") || null;
-const inputEl = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn") || null;
 
+const inputEl = document.getElementById("messageInput");
 const messagesEl = document.getElementById("messages");
 const messagesViewport = messagesEl.parentElement;
-const whoEl = document.getElementById("who") || null;
-const onlineCountEl = document.getElementById("onlineCount") || null;
+const sendBtn = document.getElementById("sendBtn") || null;
 
 const recoveryInput = document.getElementById("recoveryInput") || null;
 const restoreBtn = document.getElementById("restoreBtn") || null;
-
 const recoveryDisplay = document.getElementById("recoveryDisplay") || null;
 const recoveryCodeText = document.getElementById("recoveryCodeText") || null;
 const copyRecoveryBtn = document.getElementById("copyRecoveryBtn") || null;
@@ -105,11 +90,15 @@ const loadOlderBtn = document.getElementById("loadOlderBtn");
 const spinner = document.getElementById("spinner") || document.getElementById("loadingOlder") || null;
 const newMsgIndicator = document.getElementById("newMsgIndicator") || null;
 
+const whoEl = document.getElementById("who") || null;
+const onlineCountEl = document.getElementById("onlineCount") || null;
+
 const isMobile = window.matchMedia("(max-width: 900px)").matches;
 const sheet = document.getElementById("mobile-action-sheet");
 const backdrop = document.getElementById("sheet-backdrop");
 
 const deletedMessages = new Set();
+const picker = document.getElementById("reaction-picker");
 
 let currentMobileMsg = null;
 let longPressTimeout = null;
@@ -122,38 +111,16 @@ let sheetDragging = false;
 let suppressNewIndicator = false;
 let regroupTimer = null;
 let userIsAtBottom = true;
+let replyToId = null;
+let pickerTarget = null;
 
-  const typingRef = firebase.database().ref("typing");
-  typingRef.on("value", snap => {
-    const data = snap.val() || {};
-    updateTypingIndicator(data);
-  });
-
-const colors = ["#ffae00", "#f700ff", "#00b7ff", "#00ffb3", "#fbff00"];
-
-/* ================= BEHAVIORS: scroll handling & indicator ================= */
-messagesViewport.addEventListener("scroll", () => {
-  const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
-  userIsAtBottom = nearBottom;
-  if (nearBottom) hideNewMsgIndicator();
+const typingRef = firebase.database().ref("typing");
+typingRef.on("value", snap => {
+  const data = snap.val() || {};
+  updateTypingIndicator(data);
 });
 
-function showNewMsgIndicator() {
-  if (newMsgIndicator) {
-    newMsgIndicator.style.display = "block";
-    newMsgIndicator.classList.remove("hidden");
-  }
-}
-
-function hideNewMsgIndicator() {
-  if (newMsgIndicator) {
-    newMsgIndicator.classList.add("hidden");
-    setTimeout(() => {
-      if (newMsgIndicator.classList.contains("hidden"))
-        newMsgIndicator.style.display = "none";
-    }, 200);
-  }
-}
+const colors = ["#ffae00", "#f700ff", "#00b7ff", "#00ffb3", "#fbff00"];
 
 /* ================= UTILITIES: escape, timeAgo, date label ================= */
 function formatMessageText(text) {
@@ -213,9 +180,7 @@ function insertDateSeparatorPrepend(el, ts) {
 function insertDateSeparatorAppend(ts) {
   const label = formatDateLabel(ts);
 
-  const existing = messagesEl.querySelector(
-    `.date-separator[data-label="${label}"]`
-  );
+  const existing = messagesEl.querySelector(`.date-separator[data-label="${label}"]`);
   if (existing) return existing;
 
   const sep = document.createElement("div");
@@ -247,38 +212,6 @@ function insertDateSeparatorAppend(ts) {
   return sep;
 }
 
-/* ================= GROUP LOGIC ================= */
-function isSameGroup(a, b) {
-  if (!a || !b) return false;
-  return a.clientId === b.clientId && Math.abs(a.time - b.time) <= 120000;
-}
-
-function hideMeta(el) {
-  const meta = el.querySelector(".meta");
-  if (meta) meta.classList.add("hidden");
-}
-function showMeta(el) {
-  const meta = el.querySelector(".meta");
-  if (meta) meta.classList.remove("hidden");
-}
-function hideTime(el) {
-  if (!el) return;
-  const t = el.querySelector(".time");
-  if (t) t.classList.add("hidden");
-}
-function showTime(el) {
-  const t = el.querySelector(".time");
-  if (t) t.classList.remove("hidden");
-}
-function hideSideDot(el) {
-  const d = el.querySelector(".side-dot");
-  if (d) d.classList.add("hidden");
-}
-function showSideDot(el) {
-  const d = el.querySelector(".side-dot");
-  if (d) d.classList.remove("hidden");
-}
-
 /* ================= RENDER HELPERS ================= */
 function createMessageElement(data) {
   const { id, name, text, time, clientId: cid, color, edited } = data;
@@ -287,6 +220,7 @@ function createMessageElement(data) {
   const el = document.createElement("div");
   el.className = `msg ${isMe ? "me" : "other"}`;
   el.dataset.id = id;
+  el.id = "msg-" + id;
 
   el.innerHTML = `
     <div class="meta">
@@ -296,10 +230,12 @@ function createMessageElement(data) {
     <div class="side-dot" style="background:${color || "#888"}"></div>
 
     <div class="bubble">
+      ${renderReplyPreview(data)}
       ${formatMessageText(text)}
       ${edited ? "<span class='edited'>(edited)</span>" : ""}
     </div>
 
+    <div class="reaction-badges"></div>
     <div class="time">${timeAgo(time)}</div>
 
     <div class="actions">
@@ -334,31 +270,51 @@ function createMessageElement(data) {
     adjustBubbleAlignment(bubble);
   });
 
+  renderReactions(el, data);
+  attachActionHandlers(el, id, data);
+
   attachLongPress(el);
   enableSwipeToReply(el);
-  attachActionHandlers(el, id, data);
+
   requestAnimationFrame(() => positionActions(el));
   requestAnimationFrame(() => positionIcons(el));
   return el;
 }
 
-function adjustBubbleAlignment(bubbleEl) {
-  if (!bubbleEl) return;
-  try {
-    const range = document.createRange();
-    range.selectNodeContents(bubbleEl);
-    const rects = range.getClientRects();
-    const lines = rects.length || 1;
+function updateMessageElement(data) {
+  const id = data.id;
+  messages[id] = data;
+  const el = domCache[id];
+  if (!el) return;
 
-    bubbleEl.style.textAlign = lines === 1 ? "center" : "left";
-    if (typeof range.detach === "function") range.detach();
-  } catch (err) {
-    bubbleEl.style.textAlign = "left";
-    console.warn("adjustBubbleAlignment failed:", err);
+  const bubble = el.querySelector(".bubble");
+  if (bubble) {
+    const replyHtml = renderReplyPreview(data);
+
+    let textHtml = escapeHtml(data.text);
+    if (data.edited) {
+      textHtml += " <span class='edited'>(edited)</span>";
+    }
+    bubble.innerHTML = replyHtml + textHtml;
+
+    activateReplyJump(el);
+    renderReactions(el, data);
   }
+
+  const timeEl = el.querySelector(".time");
+  if (timeEl) {
+    timeEl.dataset.timestamp = data.time;
+    if (!timeEl.classList.contains("hidden")) {
+      timeEl.textContent = timeAgo(data.time);
+    }
+  }
+
+  adjustBubbleAlignment(bubble);
+
+  positionActions(el);
+  positionIcons(el);
 }
 
-/* appendMessage: add to end of list, handle grouping and date separators */
 function appendMessage(data) {
   if (!messagesEl) return null;
   const id = data.id;
@@ -390,6 +346,8 @@ function appendMessage(data) {
   }
 
   const el = createMessageElement(data);
+  activateReplyJump(el);
+  renderReactions(el, data);
   const prev = (() => {
     let x = messagesEl.lastElementChild;
     while (x && x.classList.contains("date-separator")) x = x.previousElementSibling;
@@ -404,6 +362,7 @@ function appendMessage(data) {
       hideMeta(prev);
       hideTime(prev);
       hideSideDot(prev);
+
       hideMeta(el);
       showTime(el);
       showSideDot(el);
@@ -429,6 +388,7 @@ function appendMessage(data) {
   }
 
   insertMessage(el, data.time);
+  activateReplyJump(el);
   domCache[id] = el;
   attachActionHandlers(el, id, data);
 
@@ -446,36 +406,6 @@ function appendMessage(data) {
   }
 }
 
-/* update DOM element for existing msg */
-function updateMessageElement(data) {
-  const id = data.id;
-  messages[id] = data;
-  const el = domCache[id];
-  if (!el) return;
-
-  const bubble = el.querySelector(".bubble");
-  if (bubble) {
-    let html = escapeHtml(data.text);
-    if (data.edited) {
-      html += " <span class='edited'>(edited)</span>";
-    }
-    bubble.innerHTML = html;
-  }
-
-  const timeEl = el.querySelector(".time");
-  if (timeEl) {
-    timeEl.dataset.timestamp = data.time;
-    if (!timeEl.classList.contains("hidden")) {
-      timeEl.textContent = timeAgo(data.time);
-    }
-  }
-  adjustBubbleAlignment(bubble);
-
-  positionActions(el);
-  positionIcons(el);
-}
-
-/* prependMessage — insert older messages at top (used by load older) */
 function prependMessage(data) {
   if (!messagesEl) return null;
   const id = data.id;
@@ -499,10 +429,13 @@ function prependMessage(data) {
       insertDateSeparatorPrepend(firstReal, data.time);
     }
   } else {
-    insertDateSeparatorAtEnd(data.time);
+    insertDateSeparatorAppend(data.time);
   }
 
   const el = createMessageElement(data);
+  activateReplyJump(el);
+  renderReactions(el, data);
+
   messagesEl.insertBefore(el, messagesEl.firstChild);
   domCache[id] = el;
   attachActionHandlers(el, id, data);
@@ -518,6 +451,7 @@ function prependMessage(data) {
       showMeta(el);
       hideTime(el);
       hideSideDot(el);
+
       hideMeta(next);
       hideTime(next);
       hideSideDot(next);
@@ -561,10 +495,636 @@ function insertMessage(msgEl, timestamp) {
       return;
     }
   }
-
   messagesEl.appendChild(msgEl);
 }
 
+/* ================= SEND / EDIT MESSAGE ================= */
+let editingId = null;
+let originalText = "";
+let typingTimeout = null;
+
+if (sendBtn) sendBtn.onclick = () => sendMessage();
+function sendMessage() {
+  if (!authReady || !user) {
+    pendingSend = true;
+    return;
+  }
+
+  if (!messageInput) {
+    messageInput =
+      document.getElementById("message") ||
+      document.getElementById("messageInput") ||
+      document.querySelector(".input-bar input") ||
+      null;
+
+    if (!messageInput) {
+      console.error("[ERROR] Message Input:", err);
+      return;
+    }
+  }
+
+  const text = messageInput.value.trim();
+  if (!text) return;
+  if (editingId) {
+    finishEditMessage();
+    return;
+  }
+
+  const newMsg = {
+    uid: user.uid,
+    name: displayName,
+    text,
+    time: Date.now(),
+    clientId,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    replyToId: replyToId || null
+  };
+
+  const newRef = messagesRef.push();
+  newMsg.id = newRef.key;
+  
+  replyToId = null;
+  document.getElementById("reply-bar").classList.add("hidden");
+  sendTypingStatus(false);
+
+  newRef
+    .set(newMsg)
+    .catch(err => { console.error("[ERROR] Sending Message:", err); });
+  messageInput.value = "";
+}
+
+function beginEditMessage(id) {
+  editingId = id;
+  originalText = messages[id]?.text || "";
+
+  if (!messageInput) {
+    messageInput =
+      document.getElementById("message") ||
+      document.getElementById("messageInput") ||
+      document.querySelector(".input-bar input");
+  }
+
+  messageInput.value = originalText;
+  messageInput.focus();
+  sendBtn.textContent = "Save Edit";
+
+  if (!document.getElementById("cancelEditBtn")) {
+    const cancelBtn = document.createElement("button");
+    cancelBtn.id = "cancelEditBtn";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.className = "cancel-edit-btn";
+    cancelBtn.style.marginLeft = "8px";
+    cancelBtn.onclick = cancelEdit;
+    sendBtn.insertAdjacentElement("afterend", cancelBtn);
+  }
+}
+
+function finishEditMessage() {
+  if (!messageInput) return cancelEdit();
+
+  const newText = messageInput.value.trim();
+  if (!newText || !editingId) return cancelEdit();
+  if (newText === originalText) {
+    cancelEdit();
+    return;
+  }
+
+  messagesRef.child(editingId).update({
+    text: newText,
+    edited: true
+  }).catch(console.error);
+
+  cancelEdit();
+}
+
+function cancelEdit() {
+  editingId = null;
+  originalText = "";
+
+  if (messageInput) messageInput.value = "";
+  if (sendBtn) sendBtn.textContent = "Send";
+  const cancelBtn = document.getElementById("cancelEditBtn");
+  if (cancelBtn) cancelBtn.remove();
+}
+
+function startReply(msgEl) {
+  const id = msgEl.dataset.id;
+  const msg = messages[id];
+  if (!msg) return;
+  replyToId = id;
+
+  document.getElementById("reply-name").textContent = msg.name;
+  document.getElementById("reply-text").textContent = msg.text;
+  document.getElementById("reply-bar").classList.remove("hidden");
+
+  messageInput.focus();
+}
+
+function renderReplyPreview(msg) {
+  if (!msg.replyToId) return "";
+  const original = messages[msg.replyToId];
+  if (!original) return "";
+
+  return `
+  <div class="reply-bubble" data-reply-jump="${msg.replyToId}">
+    <strong>${escapeHtml(original.name)}</strong>
+    <div class="reply-snippet">${escapeHtml(original.text.slice(0, 80))}</div>
+  </div>`;
+}
+
+function activateReplyJump(msgEl) {
+  const bubble = msgEl.querySelector(".reply-bubble");
+  if (!bubble) return;
+
+  bubble.onclick = () => {
+    const targetId = bubble.dataset.replyJump;
+    if (!targetId) return;
+
+    const targetEl = document.getElementById("msg-" + targetId);
+    if (!targetEl) return;
+
+    targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+}
+
+function sendTypingStatus(isTyping) {
+  const ref = firebase.database().ref("typing/" + clientId);
+  ref.set({
+    name: displayName,
+    typing: isTyping,
+    ts: Date.now()
+  });
+}
+
+function updateTypingIndicator(allTyping) {
+  const el = document.getElementById("typingIndicator");
+  const typingUsers = Object.values(allTyping)
+    .filter(u => u.typing && u.ts > Date.now() - 4000)
+    .filter(u => u.name !== displayName);
+
+  if (typingUsers.length === 0) {
+    el.classList.remove("show");
+    return;
+  }
+
+  let text = "";
+  if (typingUsers.length === 1) 
+    text = `${typingUsers[0].name} is typing`;
+  else 
+    text = `${typingUsers.length} people are typing`;
+
+  el.innerHTML = `<span>${text}</span><div class="typing-dots"><span></span><span></span><span></span></div>`;
+  el.classList.add("show");
+}
+
+inputEl.addEventListener("input", () => {
+  sendTypingStatus(true);
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    sendTypingStatus(false);
+  }, 1500);
+});
+
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    if (e.shiftKey) {
+      e.stopPropagation();
+      return;
+    }
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+if (newMsgIndicator) {
+  newMsgIndicator.onclick = () => {
+    hideNewMsgIndicator();
+    if (messagesViewport) messagesViewport.scrollTop = messagesViewport.scrollHeight;
+  };
+}
+
+document.getElementById("cancel-reply").onclick = () => {
+  replyToId = null;
+  document.getElementById("reply-bar").classList.add("hidden");
+};
+
+/* ================= FIREBASE LISTENERS: initial load + live updates ================= */
+messagesRef.orderByKey().limitToLast(150).on("child_added", snap => {
+  const msg = snap.val();
+  const id = snap.key;
+
+  if (domCache[id]) return;
+  if (deletedMessages.has(id)) return;
+
+  if (!oldestLoadedKey) oldestLoadedKey = id;
+  messages[id] = { ...msg, id };
+  appendMessage(messages[id]);
+  const isMe = msg.clientId === clientId;
+  updateLoadOlderVisibility();
+  if (!userIsAtBottom && !isMe) showNewMsgIndicator();
+});
+
+messagesRef.on("child_changed", snap => {
+  const msg = snap.val();
+  const id = snap.key;
+  messages[id] = { ...msg, id };
+
+  if (domCache[id]) {
+    updateMessageElement(messages[id]);
+    positionActions(domCache[id]);
+    positionIcons(domCache[id]);
+  }
+});
+
+messagesRef.on("child_removed", snap => {
+  const id = snap.key;
+  deletedMessages.add(id);
+
+  const el = domCache[id];
+  if (!el) return;
+
+  el.remove();
+  delete domCache[id];
+  delete messages[id];
+
+  scheduleRegroup();
+});
+
+/* ================= LOAD MESSAGES / INFINITE SCROLL ================= */
+let oldestLoadedKey = null;
+let isLoadingMore = false;
+
+if (messagesViewport) {
+  messagesViewport.addEventListener("scroll", async () => {
+    const box = messagesViewport;
+    if (box.scrollTop > 100) return;
+    if (isLoadingMore) return;
+    if (!oldestLoadedKey) return;
+
+    isLoadingMore = true;
+    if (spinner) spinner.style.display = "block";
+
+    try {
+      const snap = await messagesRef.orderByKey().endBefore(oldestLoadedKey).limitToLast(50).once("value");
+      if (!snap.exists()) {
+        if (loadOlderBtn) loadOlderBtn.style.display = "none";
+        if (spinner) spinner.style.display = "none";
+        isLoadingMore = false;
+        return;
+      }
+
+      const arr = [];
+      snap.forEach(s => arr.push({ ...s.val(), id: s.key }));
+      const oldHeight = messagesViewport.scrollHeight;
+      for (let i = 0; i < arr.length; i++) {
+        const m = arr[i];
+        prependMessage(m);
+      }
+
+      oldestLoadedKey = arr[0].id;
+      const newHeight = messagesViewport.scrollHeight;
+      messagesViewport.scrollTop = newHeight - oldHeight;
+    } catch (err) {
+      console.error("[ERROR] Loading older messages:", err);
+    } finally {
+      if (spinner) spinner.style.display = "none";
+      updateLoadOlderVisibility();
+      isLoadingMore = false;
+    }
+  });
+}
+
+async function loadOlderMessages() {
+  if (isLoadingMore || !oldestLoadedKey) return;
+  if (messagesViewport) messagesViewport.scrollTop = 0;
+  isLoadingMore = true;
+  if (loadOlderBtn) loadOlderBtn.style.display = "none";
+  if (spinner) spinner.style.display = "block";
+
+  try {
+    const snap = await messagesRef.orderByKey().endBefore(oldestLoadedKey).limitToLast(50).once("value");
+    if (!snap.exists()) {
+      if (loadOlderBtn) loadOlderBtn.style.display = "none";
+      if (spinner) spinner.style.display = "none";
+      isLoadingMore = false;
+      return;
+    }
+
+    const arr = [];
+    snap.forEach(s => arr.push({ ...s.val(), id: s.key }));
+    const filtered = arr.filter(x => x.id !== oldestLoadedKey);
+    if (filtered.length === 0) {
+      if (loadOlderBtn) loadOlderBtn.style.display = "none";
+      if (spinner) spinner.style.display = "none";
+      isLoadingMore = false;
+      return;
+    }
+
+    filtered.forEach(m => prependMessage(m));
+    oldestLoadedKey = filtered[0].id;
+  } catch (err) {
+    console.error("[ERROR] Loading older messages:", err);
+  } finally {
+    if (spinner) spinner.style.display = "none";
+    updateLoadOlderVisibility();
+    isLoadingMore = false;
+  }
+}
+
+function updateLoadOlderVisibility() {
+  if (!oldestLoadedKey) return;
+  messagesRef.limitToFirst(1).once("value", snap => {
+    if (!snap.exists()) return;
+    const veryFirstKey = Object.keys(snap.val())[0];
+
+    if (oldestLoadedKey <= veryFirstKey) {
+      loadOlderBtn.style.display = "none";
+    } 
+    else {
+      loadOlderBtn.style.display = "block";
+    }
+  });
+}
+
+/* ================= GROUPING & ALIGNMENTS ================= */
+function updateAllBubbleAlignments() {
+  document.querySelectorAll(".bubble").forEach(b => adjustBubbleAlignment(b));
+}
+
+function adjustBubbleAlignment(bubbleEl) {
+  if (!bubbleEl) return;
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(bubbleEl);
+    const rects = range.getClientRects();
+    const lines = rects.length || 1;
+
+    bubbleEl.style.textAlign = lines === 1 ? "center" : "left";
+    if (typeof range.detach === "function") range.detach();
+  } catch (err) {
+    bubbleEl.style.textAlign = "left";
+  }
+}
+
+function positionIcons(msgEl) {
+  const bubble = msgEl.querySelector(".bubble");
+  const sideDot = msgEl.querySelector(".side-dot");
+  if (!bubble || !sideDot) return;
+
+  const bubbleRect = bubble.getBoundingClientRect();
+  const msgRect = msgEl.getBoundingClientRect();
+  const centerY = bubbleRect.top + bubbleRect.height / 2 - msgRect.top;
+
+  sideDot.style.top = centerY + "px";
+  sideDot.style.transform = "translateY(-50%)";
+}
+
+function positionActions(msgEl) {
+  const bubble = msgEl.querySelector(".bubble");
+  const actions = msgEl.querySelector(".actions");
+  if (!bubble || !actions) return;
+
+  const bubbleRect = bubble.getBoundingClientRect();
+  const msgRect = msgEl.getBoundingClientRect();
+  const centerY = bubbleRect.top + bubbleRect.height / 2 - msgRect.top;
+
+  actions.style.top = centerY + "px";
+  actions.style.transform = "translateY(-50%)";
+
+  const bubbleWidth = bubble.offsetWidth;
+  if (msgEl.classList.contains("me")) {
+    actions.style.right = (bubbleWidth + 10) + "px";
+    actions.style.left = "auto";
+  } else {
+    actions.style.left = (bubbleWidth + 10) + "px";
+    actions.style.right = "auto";
+  }
+}
+
+function isSameGroup(a, b) {
+  if (!a || !b) return false;
+  return a.clientId === b.clientId && Math.abs(a.time - b.time) <= 120000;
+}
+
+function hideMeta(el) {
+  const meta = el.querySelector(".meta");
+  if (meta) meta.classList.add("hidden");
+}
+function showMeta(el) {
+  const meta = el.querySelector(".meta");
+  if (meta) meta.classList.remove("hidden");
+}
+function hideTime(el) {
+  if (!el) return;
+  const t = el.querySelector(".time");
+  if (t) t.classList.add("hidden");
+}
+function showTime(el) {
+  const t = el.querySelector(".time");
+  if (t) t.classList.remove("hidden");
+}
+function hideSideDot(el) {
+  const d = el.querySelector(".side-dot");
+  if (d) d.classList.add("hidden");
+}
+function showSideDot(el) {
+  const d = el.querySelector(".side-dot");
+  if (d) d.classList.remove("hidden");
+}
+
+function scheduleRegroup() {
+  if (regroupTimer) clearTimeout(regroupTimer);
+  regroupTimer = setTimeout(() => {
+    regroupMessages();
+    regroupTimer = null;
+  }, 50);
+}
+
+function regroupMessages() {
+  const all = [...messagesViewport.querySelectorAll(".msg")];
+  for (let i = 0; i < all.length; i++) {
+    const cur = all[i];
+    const prev = all[i - 1] || null;
+    const next = all[i + 1] || null;
+
+    const curMsg = messages[cur.dataset.id];
+    const prevMsg = prev ? messages[prev.dataset.id] : null;
+    const nextMsg = next ? messages[next.dataset.id] : null;
+
+    cur.classList.remove("first-in-group", "grouped", "last-in-group");
+    const sameAsPrev = prevMsg && isSameGroup(prevMsg, curMsg);
+    const sameAsNext = nextMsg && isSameGroup(curMsg, nextMsg);
+
+    if (!sameAsPrev) {
+      cur.classList.add("first-in-group");
+      showMeta(cur);
+      hideSideDot(cur);
+      hideTime(cur);
+    } else {
+      cur.classList.add("grouped");
+      hideMeta(cur);
+    }
+
+    if (!sameAsNext) {
+      cur.classList.add("last-in-group");
+      showTime(cur);
+      showSideDot(cur);
+    } else {
+      hideTime(cur);
+      hideSideDot(cur);
+    }
+  }
+
+  requestAnimationFrame(() => {
+    for (let msg of all) {
+      positionActions(msg);
+      positionIcons(msg);
+    }
+  });
+}
+
+/* ================= BEHAVIORS: scroll handling & indicator ================= */
+messagesViewport.addEventListener("scroll", () => {
+  const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
+  userIsAtBottom = nearBottom;
+  if (nearBottom) hideNewMsgIndicator();
+});
+
+function showNewMsgIndicator() {
+  if (newMsgIndicator) {
+    newMsgIndicator.style.display = "block";
+    newMsgIndicator.classList.remove("hidden");
+  }
+}
+
+function hideNewMsgIndicator() {
+  if (newMsgIndicator) {
+    newMsgIndicator.classList.add("hidden");
+    setTimeout(() => {
+      if (newMsgIndicator.classList.contains("hidden"))
+        newMsgIndicator.style.display = "none";
+    }, 200);
+  }
+}
+
+function chatSideBar() {
+  const sidebar = document.querySelector(".sidebar");
+  const toggleBtn = document.querySelector(".sidebar-toggle");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  function isMobile() {
+    return window.matchMedia("(max-width: 900px)").matches;
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    if (isMobile()) {
+      const isOpen = sidebar.classList.toggle("open");
+      backdrop.classList.toggle("show", isOpen);
+    } else {
+      sidebar.classList.toggle("collapsed");
+    }
+  });
+
+  backdrop.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    backdrop.classList.remove("show");
+  });
+}
+
+function attachLongPress(msgEl) {
+  if (!msgEl) return;
+  let pressTimer;
+
+  const start = (e) => {
+    if (!(window.innerWidth <= 900)) return;
+    e.preventDefault();
+    pressTimer = setTimeout(() => {
+      openMobileSheet(msgEl);
+    }, 420);
+  };
+  const cancel = () => clearTimeout(pressTimer);
+
+  msgEl.addEventListener("touchstart", start, { passive: false });
+  msgEl.addEventListener("touchend", cancel);
+  msgEl.addEventListener("touchmove", cancel);
+  msgEl.addEventListener("touchcancel", cancel);
+
+  msgEl.addEventListener("mousedown", start);
+  msgEl.addEventListener("mouseup", cancel);
+  msgEl.addEventListener("mouseleave", cancel);
+}
+
+function enableSheetDrag() {
+  const sheet = document.getElementById("mobile-action-sheet");
+  const backdrop = document.getElementById("sheet-backdrop");
+
+  sheet.addEventListener("touchstart", e => {
+    sheetDragging = true;
+    sheetStartY = e.touches[0].clientY;
+    sheet.style.transition = "none";
+  });
+
+  sheet.addEventListener("touchmove", e => {
+    if (!sheetDragging) return;
+    sheetCurrentY = e.touches[0].clientY - sheetStartY;
+
+    if (sheetCurrentY > 0) {
+      sheet.style.transform = `translateY(${sheetCurrentY}px)`;
+      backdrop.style.opacity = Math.max(0, 1 - sheetCurrentY / 250);
+    }
+  });
+
+  sheet.addEventListener("touchend", () => {
+    sheetDragging = false;
+    sheet.style.transition = "";
+
+    if (sheetCurrentY > 120) {
+      closeMobileSheet();
+    } else {
+      sheet.style.transform = "translateY(0)";
+      backdrop.style.opacity = 1;
+    }
+  });
+}
+
+function enableSwipeToReply(msgEl) {
+  let startX = 0;
+  let swiping = false;
+
+  msgEl.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+    swiping = true;
+  });
+
+  msgEl.addEventListener("touchmove", e => {
+    if (!swiping) return;
+    const deltaX = e.touches[0].clientX - startX;
+    if (deltaX > 40) {
+      swiping = false;
+      startReply(msgEl);
+    }
+  });
+
+  msgEl.addEventListener("touchend", () => { swiping = false; });
+}
+
+document.addEventListener("DOMContentLoaded", enableSheetDrag);
+document.addEventListener("DOMContentLoaded", chatSideBar);
+
+document.addEventListener("touchstart", e => {
+  if (e.target.closest(".msg")) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+window.addEventListener("resize", updateAllActionPositions);
+function updateAllActionPositions() {
+  requestAnimationFrame(updateAllBubbleAlignments);
+  document.querySelectorAll(".msg").forEach(positionActions);
+  document.querySelectorAll(".msg").forEach(positionIcons);
+}
+
+/* ================= ACTION MENU HANDLER ================= */
 function attachActionHandlers(el, id, data) {
   const menuBtn = el.querySelector(".menu-btn");
   const menu = el.querySelector(".action-menu");
@@ -627,6 +1187,7 @@ function attachActionHandlers(el, id, data) {
   }
 
   replyBtn.onclick = () => {
+    startReply(el);
     closeMenu(menu);
   };
 
@@ -640,7 +1201,7 @@ function attachActionHandlers(el, id, data) {
   }
 
   reactBtn.onclick = () => {
-    console.log("React clicked for ID:", id);
+    openReactionPicker(el)
     closeMenu(menu);
   };
 
@@ -665,7 +1226,6 @@ function closeMenu(menu) {
 
 function closeAllMenus(options = {}) {
   const except = options.except || null;
-
   document.querySelectorAll(".action-menu.open").forEach((m) => {
     if (m !== except) m.classList.remove("open");
   });
@@ -678,352 +1238,140 @@ document.addEventListener("click", (e) => {
   closeAllMenus();
 });
 
-/* ================= LOAD MESSAGES / INFINITE SCROLL ================= */
-let oldestLoadedKey = null;
-let isLoadingMore = false;
+function handleMobileAction(action, msgEl) {
+  const id = msgEl.dataset.id;
+  const msgData = messages[id];
+  const isMe = msgData.clientId === clientId;
 
-if (messagesViewport) {
-  messagesViewport.addEventListener("scroll", async () => {
-    const box = messagesViewport;
-    if (box.scrollTop > 100) return;
-    if (isLoadingMore) return;
-    if (!oldestLoadedKey) return;
+  switch (action) {
+    case "reply":
+      startReply(msgEl);
+      break;
+    case "edit":
+      if (isMe) beginEditMessage(id);
+      break;
+    case "react":
+      openReactionPicker(msgEl)
+      break;
+    case "delete":
+      if (isMe) messagesRef.child(id).remove().catch(console.error);
+      break;
+    case "report":
+      console.log("Reported:", id);
+      break;
+  }
+  closeMobileSheet();
+}
 
-    isLoadingMore = true;
-    if (spinner) spinner.style.display = "block";
+function openMobileSheet(msgEl) {
+  currentMobileMsg = msgEl;
+  const id = msgEl.dataset.id;
+  const msgData = messages[id];
+  const isMe = msgData.clientId === clientId;
 
-    try {
-      const snap = await messagesRef.orderByKey().endBefore(oldestLoadedKey).limitToLast(50).once("value");
-      if (!snap.exists()) {
-        if (loadOlderBtn) loadOlderBtn.style.display = "none";
-        if (spinner) spinner.style.display = "none";
-        isLoadingMore = false;
-        return;
-      }
+  document.querySelector('[data-action="edit"]').style.display = isMe ? "block" : "none";
+  document.querySelector('[data-action="delete"]').style.display = isMe ? "block" : "none";
 
-      const arr = [];
-      snap.forEach(s => arr.push({ ...s.val(), id: s.key }));
+  const sheet = document.getElementById("mobile-action-sheet");
+  const backdrop = document.getElementById("sheet-backdrop");
+  sheet.classList.add("open");
+  sheet.style.transform = "translateY(0)";
+  backdrop.classList.add("show");
+}
 
-      const oldHeight = messagesViewport.scrollHeight;
+function closeMobileSheet() {
+  const sheet = document.getElementById("mobile-action-sheet");
+  const backdrop = document.getElementById("sheet-backdrop");
 
-      for (let i = 0; i < arr.length; i++) {
-        const m = arr[i];
-        prependMessage(m);
-      }
+  sheet.classList.remove("open");
+  backdrop.classList.remove("show");
+  sheet.style.transform = "";
+  currentMobileMsg = null;
+}
 
-      oldestLoadedKey = arr[0].id;
-      const newHeight = messagesViewport.scrollHeight;
-      messagesViewport.scrollTop = newHeight - oldHeight;
-    } catch (err) {
-      console.error("Load older messages failed:", err);
-    } finally {
-      if (spinner) spinner.style.display = "none";
-      updateLoadOlderVisibility();
-      isLoadingMore = false;
+document.querySelectorAll(".sheet-option").forEach(opt => {
+  opt.addEventListener("click", () => {
+    const action = opt.dataset.action;
+    if (currentMobileMsg) {
+      handleMobileAction(action, currentMobileMsg);
     }
+  });
+});
+
+document.querySelector(".sheet-cancel").addEventListener("click", closeMobileSheet);
+backdrop.addEventListener("click", closeMobileSheet);
+document.getElementById("sheet-backdrop").addEventListener("click", closeMobileSheet);
+
+/* ================= REACTION MENU HANDLER ================= */
+function openReactionPicker(msgEl) {
+  pickerTarget = msgEl;
+
+  const bubble = msgEl.querySelector(".bubble");
+  const rect = bubble.getBoundingClientRect();
+  const pickerRect = picker.getBoundingClientRect();
+
+  picker.style.top = rect.top - pickerRect.height - 10 + "px";
+  if (msgEl.classList.contains("me")) {
+    picker.style.left = (rect.right - pickerRect.width) + "px";
+  } else {
+    picker.style.left = rect.left + "px";
+  }
+
+  picker.classList.add("show");
+}
+
+function renderReactions(msgEl, data) {
+  const container = msgEl.querySelector(".reaction-badges");
+  container.innerHTML = "";
+  if (!data.reactions) return;
+
+  Object.keys(data.reactions).forEach(emoji => {
+    const users = Object.keys(data.reactions[emoji]);
+    const isMine = data.reactions[emoji][user.uid];
+
+    const badge = document.createElement("div");
+    badge.className = "reaction-badge" + (isMine ? " mine" : "");
+    badge.innerHTML = `${emoji} <span>${users.length}</span>`;
+
+    badge.onclick = () => toggleReaction(msgEl, emoji);
+    container.appendChild(badge);
   });
 }
 
-async function loadOlderMessages() {
-  if (isLoadingMore || !oldestLoadedKey) return;
-  if (messagesViewport) messagesViewport.scrollTop = 0;
-  isLoadingMore = true;
-  if (loadOlderBtn) loadOlderBtn.style.display = "none";
-  if (spinner) spinner.style.display = "block";
+function toggleReaction(msgEl, emoji) {
+  const msgId = msgEl.dataset.id;
+  const ref = messagesRef.child(msgId).child("reactions").child(emoji).child(user.uid);
 
-  try {
-    const snap = await messagesRef.orderByKey().endBefore(oldestLoadedKey).limitToLast(50).once("value");
-    if (!snap.exists()) {
-      if (loadOlderBtn) loadOlderBtn.style.display = "none";
-      if (spinner) spinner.style.display = "none";
-      isLoadingMore = false;
-      return;
-    }
-
-    const arr = [];
-    snap.forEach(s => arr.push({ ...s.val(), id: s.key }));
-
-    const filtered = arr.filter(x => x.id !== oldestLoadedKey);
-    if (filtered.length === 0) {
-      if (loadOlderBtn) loadOlderBtn.style.display = "none";
-      if (spinner) spinner.style.display = "none";
-      isLoadingMore = false;
-      return;
-    }
-
-    filtered.forEach(m => prependMessage(m));
-    oldestLoadedKey = filtered[0].id;
-  } catch (err) {
-    console.error("loadOlderMessages error:", err);
-  } finally {
-    if (spinner) spinner.style.display = "none";
-    updateLoadOlderVisibility();
-    isLoadingMore = false;
-  }
-}
-
-function updateLoadOlderVisibility() {
-  if (!oldestLoadedKey) return;
-
-  messagesRef.limitToFirst(1).once("value", snap => {
-    if (!snap.exists()) return;
-
-    const veryFirstKey = Object.keys(snap.val())[0];
-
-    if (oldestLoadedKey <= veryFirstKey) {
-      loadOlderBtn.style.display = "none";
-    } 
-    else {
-      loadOlderBtn.style.display = "block";
-    }
+  ref.once("value").then(snap => {
+    if (snap.exists()) ref.remove();
+    else ref.set(true);
   });
 }
 
-/* ================= SEND / EDIT MESSAGE ================= */
-let editingId = null;
-let originalText = "";
-
-function beginEditMessage(id) {
-  editingId = id;
-  originalText = messages[id]?.text || "";
-
-  if (!messageInput) {
-    messageInput =
-      document.getElementById("message") ||
-      document.getElementById("messageInput") ||
-      document.querySelector(".input-bar input");
-  }
-
-  messageInput.value = originalText;
-  messageInput.focus();
-
-  sendBtn.textContent = "Save Edit";
-
-  if (!document.getElementById("cancelEditBtn")) {
-    const cancelBtn = document.createElement("button");
-    cancelBtn.id = "cancelEditBtn";
-    cancelBtn.textContent = "Cancel";
-    cancelBtn.className = "cancel-edit-btn";
-    cancelBtn.style.marginLeft = "8px";
-    cancelBtn.onclick = cancelEdit;
-
-    sendBtn.insertAdjacentElement("afterend", cancelBtn);
-  }
-}
-
-function finishEditMessage() {
-  if (!messageInput) return cancelEdit();
-
-  const newText = messageInput.value.trim();
-  if (!newText || !editingId) return cancelEdit();
-
-  if (newText === originalText) {
-    cancelEdit();
-    return;
-  }
-
-  messagesRef.child(editingId).update({
-    text: newText,
-    edited: true
-  }).catch(console.error);
-
-  cancelEdit();
-}
-
-function cancelEdit() {
-  editingId = null;
-  originalText = "";
-
-  if (messageInput) messageInput.value = "";
-  if (sendBtn) sendBtn.textContent = "Send";
-
-  const cancelBtn = document.getElementById("cancelEditBtn");
-  if (cancelBtn) cancelBtn.remove();
-}
-
-function sendMessage() {
-  if (!authReady || !user) {
-    pendingSend = true;
-    return;
-  }
-
-  if (!messageInput) {
-    messageInput =
-      document.getElementById("message") ||
-      document.getElementById("messageInput") ||
-      document.querySelector(".input-bar input") ||
-      null;
-    if (!messageInput) {
-      return alert("Message input not available.");
+picker.querySelectorAll(".react").forEach(el => {
+  el.onclick = () => {
+    if (pickerTarget) {
+      toggleReaction(pickerTarget, el.textContent);
     }
-  }
-
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-
-  if (editingId) {
-    finishEditMessage();
-    return;
-  }
-
-  const newMsg = {
-    uid: user.uid,
-    name: displayName,
-    text,
-    time: Date.now(),
-    clientId,
-    color: colors[Math.floor(Math.random() * colors.length)]
+    picker.classList.remove("show");
   };
-
-  const newRef = messagesRef.push();
-  newMsg.id = newRef.key;
-  sendTypingStatus(false);
-
-  newRef
-    .set(newMsg)
-    .catch(err => {
-      console.error("Failed to send message:", err);
-      alert("Failed to send — check console.");
-    });
-
-  messageInput.value = "";
-}
-
-/* ================= FIREBASE LISTENERS: initial load + live updates ================= */
-messagesRef.orderByKey().limitToLast(150).on("child_added", snap => {
-  const msg = snap.val();
-  const id = snap.key;
-
-  if (domCache[id]) return;
-  if (deletedMessages.has(id)) return;
-
-  if (!oldestLoadedKey) oldestLoadedKey = id;
-  messages[id] = { ...msg, id };
-  appendMessage(messages[id]);
-  const isMe = msg.clientId === clientId;
-  updateLoadOlderVisibility();
-  if (!userIsAtBottom && !isMe) showNewMsgIndicator();
 });
 
-messagesRef.on("child_changed", snap => {
-  const msg = snap.val();
-  const id = snap.key;
-  messages[id] = { ...msg, id };
-
-  if (domCache[id]) {
-    updateMessageElement(messages[id]);
-    positionActions(domCache[id]);
-    positionIcons(domCache[id]);
-  }
-});
-
-messagesRef.on("child_removed", snap => {
-  const id = snap.key;
-  deletedMessages.add(id);
-
-  const el = domCache[id];
-  if (!el) return;
-
-  el.remove();
-  delete domCache[id];
-  delete messages[id];
-
-  scheduleRegroup();
-});
-
-function scheduleRegroup() {
-  if (regroupTimer) clearTimeout(regroupTimer);
-  regroupTimer = setTimeout(() => {
-    regroupMessages();
-    regroupTimer = null;
-  }, 50);
-}
-
-function regroupMessages() {
-  const all = [...messagesViewport.querySelectorAll(".msg")];
-  for (let i = 0; i < all.length; i++) {
-    const cur = all[i];
-    const prev = all[i - 1] || null;
-    const next = all[i + 1] || null;
-
-    const curMsg = messages[cur.dataset.id];
-    const prevMsg = prev ? messages[prev.dataset.id] : null;
-    const nextMsg = next ? messages[next.dataset.id] : null;
-
-    cur.classList.remove("first-in-group", "grouped", "last-in-group");
-    const sameAsPrev = prevMsg && isSameGroup(prevMsg, curMsg);
-    const sameAsNext = nextMsg && isSameGroup(curMsg, nextMsg);
-
-    if (!sameAsPrev) {
-      cur.classList.add("first-in-group");
-      showMeta(cur);
-      hideSideDot(cur);
-      hideTime(cur);
-    } else {
-      cur.classList.add("grouped");
-      hideMeta(cur);
-    }
-
-    if (!sameAsNext) {
-      cur.classList.add("last-in-group");
-      showTime(cur);
-      showSideDot(cur);
-    } else {
-      hideTime(cur);
-      hideSideDot(cur);
+document.addEventListener("click", (e) => {
+  if (picker.classList.contains("show")) {
+    if (!picker.contains(e.target) && !e.target.classList.contains("react-option")) {
+      picker.classList.remove("show");
     }
   }
-
-  requestAnimationFrame(() => {
-    for (let msg of all) {
-      positionActions(msg);
-      positionIcons(msg);
-    }
-  });
-}
+});
 
 /* ================= PRESENCE / RECOVERY ================= */
 let myPresenceRef = null;
-function initPresence(color, name) {
-  try {
-    myPresenceRef = presenceRef.push();
-    myPresenceRef.onDisconnect().remove();
 
-    return myPresenceRef
-      .set({
-        uid: user.uid,
-        name: name || "Guest",
-        clientId,
-        color,
-        ts: Date.now()
-      })
-      .catch(err => console.warn("Presence failed:", err));
-  } catch (err) {
-    console.warn("initPresence failed:", err);
-  }
-}
-
-function generateRecoveryCode(len = 8) {
-  const CH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < len; i++) out += CH[Math.floor(Math.random() * CH.length)];
-  return out;
-}
-
-async function saveRecoveryRecord(code, payload) {
-  try {
-    await recoveryRef.child(code).set(payload);
-    localStorage.setItem("z_recovery", JSON.stringify({ code, payload }));
-  } catch (err) {
-    console.error("Recovery save failed:", err);
-  }
-}
-
-function showRecoveryCodeUI(code) {
-  if (recoveryCodeText) recoveryCodeText.textContent = code;
-  if (recoveryDisplay) recoveryDisplay.style.display = "flex";
-}
+joinBtn && (joinBtn.onclick = () => {
+  const n = promptName.value || displayName || "Guest";
+  join(n);
+});
 
 function join(name, restoredInfo = null) {
   if (!authReady || !user) {
@@ -1057,19 +1405,44 @@ function join(name, restoredInfo = null) {
     });
   });
 
-  const existing = localStorage.getItem("z_recovery");
-  if (existing) {
-    const obj = JSON.parse(existing);
-    if (obj.payload.clientId === clientId) {
-      showRecoveryCodeUI(obj.code);
-      return;
-    }
-  }
-
   const code = generateRecoveryCode(8);
   const payload = { clientId, name: displayName, color: myColor, ts: Date.now() };
   saveRecoveryRecord(code, payload);
-  showRecoveryCodeUI(code);
+}
+
+function initPresence(color, name) {
+  try {
+    myPresenceRef = presenceRef.push();
+    myPresenceRef.onDisconnect().remove();
+
+    return myPresenceRef
+      .set({
+        uid: user.uid,
+        name: name || "Guest",
+        clientId,
+        color,
+        ts: Date.now()
+      })
+      .catch(err => console.error("[ERROR] Presence:", err));
+  } catch (err) {
+    console.error("[ERROR] initPresence:", err);
+  }
+}
+
+function generateRecoveryCode(len = 8) {
+  const CH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += CH[Math.floor(Math.random() * CH.length)];
+  return out;
+}
+
+async function saveRecoveryRecord(code, payload) {
+  try {
+    await recoveryRef.child(code).set(payload);
+    localStorage.setItem("z_recovery", JSON.stringify({ code, payload }));
+  } catch (err) {
+    console.error("[ERROR] Save Recovery:", err);
+  }
 }
 
 async function restoreWithCode(code) {
@@ -1106,11 +1479,6 @@ async function restoreWithCode(code) {
   });
 }
 
-joinBtn && (joinBtn.onclick = () => {
-  const n = promptName.value || displayName || "Guest";
-  join(n);
-});
-
 if (restoreBtn) {
   restoreBtn.onclick = () => {
     const c = recoveryInput ? recoveryInput.value : "";
@@ -1128,306 +1496,6 @@ if (copyRecoveryBtn) {
   copyRecoveryBtn.onclick = () => {
     if (recoveryCodeText) navigator.clipboard.writeText(recoveryCodeText.textContent || "");
   };
-}
-
-if (sendBtn) sendBtn.onclick = () => sendMessage();
-inputEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    if (e.shiftKey) {
-      e.stopPropagation();
-      return;
-    }
-
-    e.preventDefault();
-    sendMessage();
-  }
-
-  let typingTimeout = null;
-
-  function sendTypingStatus(isTyping) {
-    const ref = firebase.database().ref("typing/" + clientId);
-    ref.set({
-      name: displayName,
-      typing: isTyping,
-      ts: Date.now()
-    });
-  }
-
-  messageInput.addEventListener("input", () => {
-    sendTypingStatus(true);
-
-    clearTimeout(typingTimeout);
-
-    typingTimeout = setTimeout(() => {
-      sendTypingStatus(false);
-    }, 1500);
-  });
-});
-if (newMsgIndicator) {
-  newMsgIndicator.onclick = () => {
-    hideNewMsgIndicator();
-    if (messagesViewport) messagesViewport.scrollTop = messagesViewport.scrollHeight;
-  };
-}
-
-document.addEventListener("touchstart", e => {
-  if (e.target.closest(".msg")) {
-    e.preventDefault();
-  }
-}, { passive: false });
-
-function attachLongPress(msgEl) {
-  if (!msgEl) return;
-
-  let pressTimer;
-
-  const start = (e) => {
-    if (!(window.innerWidth <= 900)) return;
-    e.preventDefault();
-    pressTimer = setTimeout(() => {
-      openMobileSheet(msgEl);
-    }, 420);
-  };
-
-  const cancel = () => clearTimeout(pressTimer);
-
-  msgEl.addEventListener("touchstart", start, { passive: false });
-  msgEl.addEventListener("touchend", cancel);
-  msgEl.addEventListener("touchmove", cancel);
-  msgEl.addEventListener("touchcancel", cancel);
-
-  msgEl.addEventListener("mousedown", start);
-  msgEl.addEventListener("mouseup", cancel);
-  msgEl.addEventListener("mouseleave", cancel);
-}
-
-function enableSheetDrag() {
-  const sheet = document.getElementById("mobile-action-sheet");
-  const backdrop = document.getElementById("sheet-backdrop");
-
-  sheet.addEventListener("touchstart", e => {
-    sheetDragging = true;
-    sheetStartY = e.touches[0].clientY;
-    sheet.style.transition = "none";
-  });
-
-  sheet.addEventListener("touchmove", e => {
-    if (!sheetDragging) return;
-
-    sheetCurrentY = e.touches[0].clientY - sheetStartY;
-
-    if (sheetCurrentY > 0) {
-      sheet.style.transform = `translateY(${sheetCurrentY}px)`;
-      backdrop.style.opacity = Math.max(0, 1 - sheetCurrentY / 250);
-    }
-  });
-
-  sheet.addEventListener("touchend", () => {
-    sheetDragging = false;
-    sheet.style.transition = "";
-
-    if (sheetCurrentY > 120) {
-      closeMobileSheet();
-    } else {
-      sheet.style.transform = "translateY(0)";
-      backdrop.style.opacity = 1;
-    }
-  });
-}
-
-function openMobileSheet(msgEl) {
-  currentMobileMsg = msgEl;
-
-  const id = msgEl.dataset.id;
-  const msgData = messages[id];
-  const isMe = msgData.clientId === clientId;
-
-  document.querySelector('[data-action="edit"]').style.display = isMe ? "block" : "none";
-  document.querySelector('[data-action="delete"]').style.display = isMe ? "block" : "none";
-
-  const sheet = document.getElementById("mobile-action-sheet");
-  const backdrop = document.getElementById("sheet-backdrop");
-
-  sheet.classList.add("open");
-  sheet.style.transform = "translateY(0)";
-  backdrop.classList.add("show");
-}
-
-function closeMobileSheet() {
-  const sheet = document.getElementById("mobile-action-sheet");
-  const backdrop = document.getElementById("sheet-backdrop");
-
-  sheet.classList.remove("open");
-  backdrop.classList.remove("show");
-  sheet.style.transform = "";
-
-  currentMobileMsg = null;
-}
-
-backdrop.addEventListener("click", closeMobileSheet);
-
-document.getElementById("sheet-backdrop").addEventListener("click", closeMobileSheet);
-
-document.querySelectorAll(".sheet-option").forEach(opt => {
-  opt.addEventListener("click", () => {
-    const action = opt.dataset.action;
-    if (currentMobileMsg) {
-      handleMobileAction(action, currentMobileMsg);
-    }
-  });
-});
-
-document.querySelector(".sheet-cancel").addEventListener("click", closeMobileSheet);
-document.addEventListener("DOMContentLoaded", enableSheetDrag);
-
-function handleMobileAction(action, msgEl) {
-  const id = msgEl.dataset.id;
-  const msgData = messages[id];
-  const isMe = msgData.clientId === clientId;
-
-  switch (action) {
-    case "reply":
-      startReply(msgEl);
-      break;
-
-    case "edit":
-      if (isMe) beginEditMessage(id);
-      break;
-
-    case "react":
-      startReact(msgEl);
-      break;
-
-    case "delete":
-      if (isMe) messagesRef.child(id).remove().catch(console.error);
-      break;
-
-    case "report":
-      console.log("Reported:", id);
-      break;
-  }
-
-  closeMobileSheet();
-}
-
-function enableSwipeToReply(msgEl) {
-  let startX = 0;
-  let swiping = false;
-
-  msgEl.addEventListener("touchstart", e => {
-    startX = e.touches[0].clientX;
-    swiping = true;
-  });
-
-  msgEl.addEventListener("touchmove", e => {
-    if (!swiping) return;
-
-    const deltaX = e.touches[0].clientX - startX;
-
-    if (deltaX > 40) {
-      swiping = false;
-      startReply(msgEl);
-    }
-  });
-
-  msgEl.addEventListener("touchend", () => {
-    swiping = false;
-  });
-}
-
-function positionIcons(msgEl) {
-  const bubble = msgEl.querySelector(".bubble");
-  const sideDot = msgEl.querySelector(".side-dot");
-  if (!bubble || !sideDot) return;
-
-  const bubbleRect = bubble.getBoundingClientRect();
-  const msgRect = msgEl.getBoundingClientRect();
-  const centerY = bubbleRect.top + bubbleRect.height / 2 - msgRect.top;
-
-  sideDot.style.top = centerY + "px";
-  sideDot.style.transform = "translateY(-50%)";
-}
-
-function positionActions(msgEl) {
-  const bubble = msgEl.querySelector(".bubble");
-  const actions = msgEl.querySelector(".actions");
-  if (!bubble || !actions) return;
-
-  const bubbleRect = bubble.getBoundingClientRect();
-  const msgRect = msgEl.getBoundingClientRect();
-  const centerY = bubbleRect.top + bubbleRect.height / 2 - msgRect.top;
-
-  actions.style.top = centerY + "px";
-  actions.style.transform = "translateY(-50%)";
-
-  const bubbleWidth = bubble.offsetWidth;
-  if (msgEl.classList.contains("me")) {
-    actions.style.right = (bubbleWidth + 10) + "px";
-    actions.style.left = "auto";
-  } else {
-    actions.style.left = (bubbleWidth + 10) + "px";
-    actions.style.right = "auto";
-  }
-}
-
-function updateTypingIndicator(allTyping) {
-  const el = document.getElementById("typingIndicator");
-
-  const typingUsers = Object.values(allTyping)
-    .filter(u => u.typing && u.ts > Date.now() - 4000)
-    .filter(u => u.name !== displayName);
-
-  if (typingUsers.length === 0) {
-    el.classList.remove("show");
-    return;
-  }
-
-  let text = "";
-  if (typingUsers.length === 1) 
-    text = `${typingUsers[0].name} is typing`;
-  else 
-    text = `${typingUsers.length} people are typing`;
-
-  el.innerHTML =
-    `<span>${text}</span>
-     <div class="typing-dots"><span></span><span></span><span></span></div>`;
-
-  el.classList.add("show");
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const sidebar = document.querySelector(".sidebar");
-  const toggleBtn = document.querySelector(".sidebar-toggle");
-  const backdrop = document.getElementById("sidebar-backdrop");
-
-  function isMobile() {
-    return window.matchMedia("(max-width: 900px)").matches;
-  }
-
-  toggleBtn.addEventListener("click", () => {
-    if (isMobile()) {
-      const isOpen = sidebar.classList.toggle("open");
-      backdrop.classList.toggle("show", isOpen);
-    } else {
-      sidebar.classList.toggle("collapsed");
-    }
-  });
-
-  backdrop.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    backdrop.classList.remove("show");
-  });
-});
-
-function updateAllBubbleAlignments() {
-  document.querySelectorAll(".bubble").forEach(b => adjustBubbleAlignment(b));
-}
-
-window.addEventListener("resize", updateAllActionPositions);
-function updateAllActionPositions() {
-  requestAnimationFrame(updateAllBubbleAlignments);
-  document.querySelectorAll(".msg").forEach(positionActions);
-  document.querySelectorAll(".msg").forEach(positionIcons);
 }
 
 setInterval(() => {
