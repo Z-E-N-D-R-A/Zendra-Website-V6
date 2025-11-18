@@ -1242,21 +1242,27 @@ function handleMobileAction(action, msgEl) {
   const id = msgEl.dataset.id;
   const msgData = messages[id];
   const isMe = msgData.clientId === clientId;
+  const backdrop = document.getElementById("sheet-backdrop");
 
   switch (action) {
     case "reply":
+      backdrop.classList.remove("show");
       startReply(msgEl);
       break;
     case "edit":
+      backdrop.classList.remove("show");
       if (isMe) beginEditMessage(id);
       break;
     case "react":
+      backdrop.classList.remove("show");
       openReactionPicker(msgEl)
       break;
     case "delete":
+      backdrop.classList.remove("show");
       if (isMe) messagesRef.child(id).remove().catch(console.error);
       break;
     case "report":
+      backdrop.classList.remove("show");
       console.log("Reported:", id);
       break;
   }
