@@ -1242,27 +1242,21 @@ function handleMobileAction(action, msgEl) {
   const id = msgEl.dataset.id;
   const msgData = messages[id];
   const isMe = msgData.clientId === clientId;
-  const backdrop = document.getElementById("sheet-backdrop");
 
   switch (action) {
     case "reply":
-      backdrop.classList.remove("show");
       startReply(msgEl);
       break;
     case "edit":
-      backdrop.classList.remove("show");
       if (isMe) beginEditMessage(id);
       break;
     case "react":
-      backdrop.classList.remove("show");
       openReactionPicker(msgEl)
       break;
     case "delete":
-      backdrop.classList.remove("show");
       if (isMe) messagesRef.child(id).remove().catch(console.error);
       break;
     case "report":
-      backdrop.classList.remove("show");
       console.log("Reported:", id);
       break;
   }
@@ -1309,21 +1303,63 @@ backdrop.addEventListener("click", closeMobileSheet);
 document.getElementById("sheet-backdrop").addEventListener("click", closeMobileSheet);
 
 /* ================= REACTION MENU HANDLER ================= */
+if (picker && picker.parentNode !== document.body) {
+  document.body.appendChild(picker);
+  picker.classList.remove("hidden");
+  picker.style.display = "none";
+}
+
+function hideReactionPicker() {
+  if (!picker) return;
+  picker.classList.remove("show");
+  picker.style.pointerEvents = "none";
+  setTimeout(() => {
+    if (!picker.classList.contains("show")) picker.style.display = "none";
+  }, 150);
+  pickerTarget = null;
+}
+
 function openReactionPicker(msgEl) {
+  if (!picker || !msgEl) return;
   pickerTarget = msgEl;
 
   const bubble = msgEl.querySelector(".bubble");
-  const rect = bubble.getBoundingClientRect();
-  const pickerRect = picker.getBoundingClientRect();
+  if (!bubble) return;
 
-  picker.style.top = rect.top - pickerRect.height - 10 + "px";
+  const rect = bubble.getBoundingClientRect();
+
+  picker.style.display = "flex";
+  picker.style.visibility = "hidden";
+  picker.style.pointerEvents = "none";
+
+  const pickerRect = picker.getBoundingClientRect();
+  const margin = 8;
+  let top = rect.top - pickerRect.height - 10;
+  let left;
+
+  if (top < margin) {
+    top = rect.bottom + 10;
+  }
   if (msgEl.classList.contains("me")) {
-    picker.style.left = (rect.right - pickerRect.width) + "px";
+    left = rect.right - pickerRect.width;
   } else {
-    picker.style.left = rect.left + "px";
+    left = rect.left;
   }
 
-  picker.classList.add("show");
+  left = Math.max(margin, Math.min(left, window.innerWidth - pickerRect.width - margin));
+  top = Math.max(margin, Math.min(top, window.innerHeight - pickerRect.height - margin));
+
+  picker.style.left = `${Math.round(left)}px`;
+  picker.style.top = `${Math.round(top)}px`;
+
+  picker.classList.add("just-opened");
+  setTimeout(() => picker.classList.remove("just-opened"), 50);
+
+  requestAnimationFrame(() => {
+    picker.style.visibility = "visible";
+    picker.style.pointerEvents = "auto";
+    picker.classList.add("show");
+  });
 }
 
 function renderReactions(msgEl, data) {
@@ -1354,22 +1390,27 @@ function toggleReaction(msgEl, emoji) {
   });
 }
 
-picker.querySelectorAll(".react").forEach(el => {
-  el.onclick = () => {
-    if (pickerTarget) {
-      toggleReaction(pickerTarget, el.textContent);
-    }
-    picker.classList.remove("show");
-  };
+document.addEventListener("click", (e) => {
+  if (!picker) return;
+  if (picker.contains(e.target)) return;
+  if (e.target.closest(".action-menu, .menu-btn, .action-btn, .reply-btn")) return;
+  if (picker.classList.contains("just-opened")) {
+    picker.classList.remove("just-opened");
+    return;
+  }
+  hideReactionPicker();
 });
 
-document.addEventListener("click", (e) => {
-  if (picker.classList.contains("show")) {
-    if (!picker.contains(e.target) && !e.target.classList.contains("react-option")) {
-      picker.classList.remove("show");
-    }
-  }
-});
+if (picker) {
+  picker.querySelectorAll(".react").forEach(el => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      if (!pickerTarget) return hideReactionPicker();
+      toggleReaction(pickerTarget, el.textContent);
+      hideReactionPicker();
+    };
+  });
+}
 
 /* ================= PRESENCE / RECOVERY ================= */
 let myPresenceRef = null;
