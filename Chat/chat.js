@@ -107,6 +107,7 @@ let currentLongPressMsg = null;
 let sheetStartY = 0;
 let sheetCurrentY = 0;
 let sheetDragging = false;
+let suppressNextActionMenu = false;
 
 let suppressNewIndicator = false;
 let regroupTimer = null;
@@ -1034,13 +1035,13 @@ function chatSideBar() {
 function attachLongPress(msgEl) {
   if (!msgEl) return;
   let pressTimer;
+  if (suppressNextActionMenu) {
+    suppressNextActionMenu = false;
+    return;
+  }
 
   const start = (e) => {
     if (!(window.innerWidth <= 900)) return;
-    if (suppressNextActionMenu) {
-      suppressNextActionMenu = false;
-      return;
-    }
     e.preventDefault();
     pressTimer = setTimeout(() => {
       openMobileSheet(msgEl);
@@ -1315,8 +1316,6 @@ document.getElementById("sheet-backdrop").addEventListener("click", () => {
 });
 
 /* ================= REACTION MENU HANDLER ================= */
-let suppressNextActionMenu = false;
-
 if (picker && picker.parentNode !== document.body) {
   document.body.appendChild(picker);
   picker.classList.remove("hidden");
