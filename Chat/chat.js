@@ -1037,6 +1037,10 @@ function attachLongPress(msgEl) {
 
   const start = (e) => {
     if (!(window.innerWidth <= 900)) return;
+    if (suppressNextActionMenu) {
+      suppressNextActionMenu = false;
+      return;
+    }
     e.preventDefault();
     pressTimer = setTimeout(() => {
       openMobileSheet(msgEl);
@@ -1284,9 +1288,16 @@ function closeMobileSheet() {
   const backdrop = document.getElementById("sheet-backdrop");
 
   sheet.classList.remove("open");
-  backdrop.classList.remove("show");
   sheet.style.transform = "";
+  backdrop.classList.remove("show");
+  backdrop.style.pointerEvents = "none";
+
   currentMobileMsg = null;
+  
+  // Mobile Safari animation fix
+  setTimeout(() => {
+    backdrop.style.pointerEvents = "";
+  }, 300);
 }
 
 document.querySelectorAll(".sheet-option").forEach(opt => {
@@ -1299,10 +1310,13 @@ document.querySelectorAll(".sheet-option").forEach(opt => {
 });
 
 document.querySelector(".sheet-cancel").addEventListener("click", closeMobileSheet);
-backdrop.addEventListener("click", closeMobileSheet);
-document.getElementById("sheet-backdrop").addEventListener("click", closeMobileSheet);
+document.getElementById("sheet-backdrop").addEventListener("click", () => {
+  closeMobileSheet();
+});
 
 /* ================= REACTION MENU HANDLER ================= */
+let suppressNextActionMenu = false;
+
 if (picker && picker.parentNode !== document.body) {
   document.body.appendChild(picker);
   picker.classList.remove("hidden");
@@ -1406,9 +1420,11 @@ document.addEventListener("click", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
+  e.stopPropagation();
+  suppressNextActionMenu = true;
+
   const msgEl = badge.closest(".msg");
   const emoji = badge.dataset.emoji;
-  if (!msgEl || !emoji) return;
 
   toggleReaction(msgEl, emoji);
 });
@@ -1417,12 +1433,15 @@ document.addEventListener("touchstart", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
+  e.stopPropagation();
+  e.preventDefault();   // IMPORTANT – stops mobile long-press action menu
+  suppressNextActionMenu = true;
+
   const msgEl = badge.closest(".msg");
   const emoji = badge.dataset.emoji;
-  if (!msgEl || !emoji) return;
 
   toggleReaction(msgEl, emoji);
-});
+}, { passive: false });
 
 if (picker) {
   picker.querySelectorAll(".react").forEach(el => {
