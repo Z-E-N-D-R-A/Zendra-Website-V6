@@ -1048,13 +1048,7 @@ function longPressHandler(msgEl) {
   const LONG_PRESS_DURATION = 420;
 
   const startPress = (e) => {
-    // Ignore if user starts on a reaction badge (reaction has its own long-press)
     if (e.target.closest(".reaction-badge")) return;
-
-    // Only apply long-press on mobile
-    if (window.innerWidth > 900) return;
-
-    // Prevent browser long-press defaults (text selection, copy popup)
     e.preventDefault();
     isScrolling = false;
 
@@ -1069,19 +1063,12 @@ function longPressHandler(msgEl) {
     clearTimeout(pressTimer);
   };
 
-  // Combined listener sets for both mouse + touch
   msgEl.addEventListener("touchstart", startPress, { passive: false });
   msgEl.addEventListener("touchend", cancelPress);
-  msgEl.addEventListener("touchmove", () => {
-    isScrolling = true;
-    cancelPress();
-  });
+  msgEl.addEventListener("touchmove", () => { isScrolling = true; cancelPress(); });
   msgEl.addEventListener("touchcancel", cancelPress);
 
-  msgEl.addEventListener("mousedown", (e) => {
-    if (window.innerWidth <= 900) return; // Only mobile long-press
-    startPress(e);
-  });
+  msgEl.addEventListener("mousedown", (e) => { startPress(e); });
   msgEl.addEventListener("mouseup", cancelPress);
   msgEl.addEventListener("mouseleave", cancelPress);
 }
@@ -1149,16 +1136,6 @@ document.addEventListener("DOMContentLoaded", chatSideBar);
 }, { passive: false }); */
 
 document.querySelectorAll(".msg").forEach(msg => { longPressHandler(msg); });
-
-// Hide tooltip when scrolling on mobile
-window.addEventListener("scroll", () => {
-  if (window.innerWidth > 900) return; // mobile only
-
-  document.querySelectorAll(".reaction-tooltip").forEach(tip => {
-    tip.style.opacity = "0";
-    tip.style.pointerEvents = "none";
-  });
-}, { passive: true });
 
 window.addEventListener("resize", updateAllActionPositions);
 function updateAllActionPositions() {
