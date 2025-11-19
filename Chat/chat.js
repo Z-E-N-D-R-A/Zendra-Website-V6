@@ -995,11 +995,36 @@ function regroupMessages() {
 }
 
 /* ================= BEHAVIORS: scroll handling & indicator ================= */
-messagesViewport.addEventListener("scroll", () => {
-  const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
-  userIsAtBottom = nearBottom;
-  if (nearBottom) hideNewMsgIndicator();
-});
+// -- replace your existing messagesViewport scroll listener with this:
+if (messagesViewport) {
+  messagesViewport.addEventListener("scroll", () => {
+    // keep bottom detection behavior
+    const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
+    userIsAtBottom = nearBottom;
+    if (nearBottom) hideNewMsgIndicator();
+
+    // IMPORTANT: reset long-press / tooltip state when the user scrolls inside the chat
+    hasScrolledSinceTouch = true;
+
+    // clear any pending long-press timers (badges or messages)
+    if (typeof pressTimer !== "undefined" && pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    if (typeof tooltipPressTimer !== "undefined" && tooltipPressTimer) {
+      clearTimeout(tooltipPressTimer);
+      tooltipPressTimer = null;
+    }
+
+    // reset press state so long-press can work again after scroll
+    longPressTriggered = false;
+    pressStartBadge = null;
+
+    // hide tooltip and picker (if visible)
+    try { hideReactionTooltip(); } catch (e) { /* ignore */ }
+    try { hideReactionPicker(); } catch (e) { /* ignore */ }
+  }, { passive: true });
+}
 
 function showNewMsgIndicator() {
   if (newMsgIndicator) {
@@ -1045,20 +1070,27 @@ function attachLongPress(msgEl) {
   if (!msgEl) return;
   let pressTimer;
 
-  const start = (e) => {
-    hasScrolledSinceTouch = false;
+const start = (e) => {
+  // Reset the "scrolled" flag for this fresh touch
+  hasScrolledSinceTouch = false;
 
-    if (e.target.closest(".reaction-badge")) return;
-    if (!(window.innerWidth <= 900)) return;
+  // Avoid reacting if user touched a reaction badge
+  if (e.target.closest(".reaction-badge")) return;
+  if (!(window.innerWidth <= 900)) return;
 
-    if (!hasScrolledSinceTouch) {
-      e.preventDefault();
-    } else {
-      return;
-    }
+  // If a recent scroll was detected, bail out (no long-press until next clean touch)
+  if (hasScrolledSinceTouch) return;
 
-    pressTimer = setTimeout(() => { openMobileSheet(msgEl);  }, 420);
-  };
+  // prevent default to avoid long-press OS menu / text selection
+  // only when the browser allows (we used passive:false when binding touchstart)
+  try { e.preventDefault(); } catch (err) { /* some envs may ignore */ }
+
+  // clear any leftover timers then start a new one
+  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  pressTimer = setTimeout(() => {
+    openMobileSheet(msgEl);
+  }, 420);
+};
 
   const cancel = () => clearTimeout(pressTimer);
 
@@ -1440,11 +1472,13 @@ function showReactionTooltip(badge, msgData, emoji) {
 }
 
 function hideReactionTooltip() {
+  if (!tooltip) return;
   tooltip.classList.remove("show");
   setTimeout(() => {
-    if (!tooltip.classList.contains("show")) { 
+    if (!tooltip.classList.contains("show")) {
       tooltip.classList.add("hidden");
-    }}, 150);
+    }
+  }, 150);
 }
 
 function findMsgElForBadge(badge) {
@@ -1501,6 +1535,8 @@ document.addEventListener("touchstart", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
+  // reset scroll flag for this touch
+  hasScrolledSinceTouch = false;
   pressStartBadge = badge;
   longPressTriggered = false;
 
@@ -1510,24 +1546,32 @@ document.addEventListener("touchstart", (e) => {
   const emoji = badge.dataset.emoji;
   const msgData = messages[msgEl.dataset.id];
 
+  // clear any previous
+  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+
   pressTimer = setTimeout(() => {
     longPressTriggered = true;
     showReactionTooltip(badge, msgData, emoji);
   }, 450);
-}, { passive: true });
+}, { passive: false }); // passive:false so preventDefault can be used if needed
 
 document.addEventListener("touchmove", () => {
-  clearTimeout(pressTimer);
+  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
 }, { passive: true });
 
 document.addEventListener("touchend", (e) => {
   if (window.innerWidth > 900) return;
-  clearTimeout(pressTimer);
+  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
 
   const badge = e.target.closest(".reaction-badge");
   if (!badge || badge !== pressStartBadge) return;
 
-  if (longPressTriggered) return;
+  if (longPressTriggered) {
+    // long-press already handled: do not toggle reaction
+    longPressTriggered = false;
+    pressStartBadge = null;
+    return;
+  }
 
   const msgEl = findMsgElForBadge(badge);
   if (!msgEl) return;
