@@ -706,7 +706,7 @@ body {
   #sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(0, 0, 0, 0.45);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
@@ -725,6 +725,64 @@ body {
   .actions {
     display: none !important;
   }
+
+  .mobile-action-sheet {
+    position: fixed;
+    bottom: -400px;
+    left: 0;
+    right: 0;
+    background: #1e1e1e;
+    border-radius: 16px 16px 0 0;
+    padding: 12px;
+    z-index: 901;
+    transition: bottom 0.3s ease;
+  }
+
+  .mobile-action-sheet.open {
+    bottom: 0;
+  }
+
+  .sheet-option,
+  .sheet-cancel {
+    padding: 16px;
+    font-size: 16px;
+    color: white;
+    border-bottom: 1px solid #333;
+  }
+
+  .sheet-option[data-action="delete"],
+  .sheet-option[data-action="report"] {
+    color: #ff4a4a;
+    font-weight: bold;
+  }
+
+  .sheet-option:last-child {
+    border-bottom: none;
+  }
+
+  .sheet-option:hover,
+  .sheet-cancel:hover {
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  .sheet-cancel {
+    text-align: center;
+    color: #ddd;
+  }
+
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 900;
+  }
+
+  .sheet-backdrop .show {
+    opacity: 1;
+  }
 }
 
 .msg, .mobile-action-sheet, .sheet-option {
@@ -734,62 +792,4 @@ body {
 
 input, textarea, button, select {
   font-size: 16px !important;
-}
-
-.mobile-action-sheet {
-  position: fixed;
-  bottom: -400px;
-  left: 0;
-  right: 0;
-  background: #1e1e1e;
-  border-radius: 16px 16px 0 0;
-  padding: 12px;
-  z-index: 901;
-  transition: bottom 0.3s ease;
-}
-
-.mobile-action-sheet.open {
-  bottom: 0;
-}
-
-.sheet-option,
-.sheet-cancel {
-  padding: 16px;
-  font-size: 16px;
-  color: white;
-  border-bottom: 1px solid #333;
-}
-
-.sheet-option[data-action="delete"],
-.sheet-option[data-action="report"] {
-  color: #ff4a4a;
-  font-weight: bold;
-}
-
-.sheet-option:last-child {
-  border-bottom: none;
-}
-
-.sheet-option:hover,
-.sheet-cancel:hover {
-  background: rgba(255,255,255,0.10);
-}
-
-.sheet-cancel {
-  text-align: center;
-  color: #ddd;
-}
-
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-  z-index: 900;
-}
-
-.sheet-backdrop .show {
-  opacity: 1;
 }
