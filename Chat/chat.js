@@ -1123,6 +1123,16 @@ function enableSwipeToReply(msgEl) {
 // document.addEventListener("DOMContentLoaded", enableSheetDrag);
 document.addEventListener("DOMContentLoaded", chatSideBar);
 
+// Hide tooltip when scrolling on mobile
+window.addEventListener("scroll", () => {
+  if (window.innerWidth > 900) return; // mobile only
+
+  document.querySelectorAll(".reaction-tooltip").forEach(tip => {
+    tip.style.opacity = "0";
+    tip.style.pointerEvents = "none";
+  });
+}, { passive: true });
+
 /* document.addEventListener("touchstart", e => {
   if (e.target.closest(".msg")) {
     e.preventDefault();
