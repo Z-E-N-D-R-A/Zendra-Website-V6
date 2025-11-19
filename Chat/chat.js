@@ -117,7 +117,6 @@ let currentLongPressMsg = null;
 let sheetStartY = 0;
 let sheetCurrentY = 0;
 let suppressNextActionMenu = false;
-// let sheetDragging = false;
 
 let suppressNewIndicator = false;
 let regroupTimer = null;
@@ -995,18 +994,13 @@ function regroupMessages() {
 }
 
 /* ================= BEHAVIORS: scroll handling & indicator ================= */
-// -- replace your existing messagesViewport scroll listener with this:
 if (messagesViewport) {
   messagesViewport.addEventListener("scroll", () => {
-    // keep bottom detection behavior
     const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
     userIsAtBottom = nearBottom;
     if (nearBottom) hideNewMsgIndicator();
-
-    // IMPORTANT: reset long-press / tooltip state when the user scrolls inside the chat
     hasScrolledSinceTouch = true;
 
-    // clear any pending long-press timers (badges or messages)
     if (typeof pressTimer !== "undefined" && pressTimer) {
       clearTimeout(pressTimer);
       pressTimer = null;
@@ -1016,13 +1010,11 @@ if (messagesViewport) {
       tooltipPressTimer = null;
     }
 
-    // reset press state so long-press can work again after scroll
     longPressTriggered = false;
     pressStartBadge = null;
 
-    // hide tooltip and picker (if visible)
-    try { hideReactionTooltip(); } catch (e) { /* ignore */ }
-    try { hideReactionPicker(); } catch (e) { /* ignore */ }
+    try { hideReactionTooltip(); } catch (e) {}
+    try { hideReactionPicker(); } catch (e) {}
   }, { passive: true });
 }
 
@@ -1070,27 +1062,18 @@ function attachLongPress(msgEl) {
   if (!msgEl) return;
   let pressTimer;
 
-const start = (e) => {
-  // Reset the "scrolled" flag for this fresh touch
-  hasScrolledSinceTouch = false;
+  const start = (e) => {
+    hasScrolledSinceTouch = false;
 
-  // Avoid reacting if user touched a reaction badge
-  if (e.target.closest(".reaction-badge")) return;
-  if (!(window.innerWidth <= 900)) return;
+    if (e.target.closest(".reaction-badge")) return;
+    if (!(window.innerWidth <= 900)) return;
+    if (hasScrolledSinceTouch) return;
 
-  // If a recent scroll was detected, bail out (no long-press until next clean touch)
-  if (hasScrolledSinceTouch) return;
+    try { e.preventDefault(); } catch (err) { }
 
-  // prevent default to avoid long-press OS menu / text selection
-  // only when the browser allows (we used passive:false when binding touchstart)
-  try { e.preventDefault(); } catch (err) { /* some envs may ignore */ }
-
-  // clear any leftover timers then start a new one
-  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-  pressTimer = setTimeout(() => {
-    openMobileSheet(msgEl);
-  }, 420);
-};
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    pressTimer = setTimeout(() => { openMobileSheet(msgEl); }, 420);
+  };
 
   const cancel = () => clearTimeout(pressTimer);
 
@@ -1098,43 +1081,11 @@ const start = (e) => {
   msgEl.addEventListener("touchend", cancel);
   msgEl.addEventListener("touchmove", cancel);
   msgEl.addEventListener("touchcancel", cancel);
-  
+
   msgEl.addEventListener("mousedown", start);
   msgEl.addEventListener("mouseup", cancel);
   msgEl.addEventListener("mouseleave", cancel);
 }
-
-/* function enableSheetDrag() {
-  const sheet = document.getElementById("mobile-action-sheet");
-
-  sheet.addEventListener("touchstart", e => {
-    sheetDragging = true;
-    sheetStartY = e.touches[0].clientY;
-    sheet.style.transition = "none";
-  });
-
-  sheet.addEventListener("touchmove", e => {
-    if (!sheetDragging) return;
-    sheetCurrentY = e.touches[0].clientY - sheetStartY;
-
-    if (sheetCurrentY > 0) {
-      sheet.style.transform = `translateY(${sheetCurrentY}px)`;
-      actionBackdrop.style.opacity = Math.max(0, 1 - sheetCurrentY / 250);
-    }
-  });
-
-  sheet.addEventListener("touchend", () => {
-    sheetDragging = false;
-    sheet.style.transition = "";
-
-    if (sheetCurrentY > 120) {
-      closeMobileSheet();
-    } else {
-      sheet.style.transform = "translateY(0)";
-      actionBackdrop.style.opacity = 1;
-    }
-  });
-} */
 
 function enableSwipeToReply(msgEl) {
   let startX = 0;
@@ -1157,14 +1108,7 @@ function enableSwipeToReply(msgEl) {
   msgEl.addEventListener("touchend", () => { swiping = false; });
 }
 
-// document.addEventListener("DOMContentLoaded", enableSheetDrag);
 document.addEventListener("DOMContentLoaded", chatSideBar);
-
-/* document.addEventListener("touchstart", e => {
-  if (e.target.closest(".msg")) {
-    e.preventDefault();
-  }
-}, { passive: false }); */
 
 window.addEventListener("resize", updateAllActionPositions);
 function updateAllActionPositions() {
@@ -1280,12 +1224,12 @@ function closeAllMenus(options = {}) {
   });
 }
 
-document.addEventListener("click", (e) => {
+/* document.addEventListener("click", (e) => {
   const clickedMenuBtn = e.target.closest(".menu-btn");
   const clickedMenu = e.target.closest(".action-menu");
   if (clickedMenuBtn || clickedMenu) return;
   closeAllMenus();
-});
+}); */
 
 function handleMobileAction(action, msgEl) {
   const id = msgEl.dataset.id;
@@ -1420,8 +1364,10 @@ function openReactionPicker(msgEl) {
 
 function renderReactions(msgEl, data) {
   const container = msgEl.querySelector(".reaction-badges");
+  if (!container) return;
+  
   container.innerHTML = "";
-  if (!data.reactions) return;
+  if (!data?.reactions) return;
 
   Object.keys(data.reactions).forEach(emoji => {
     const users = Object.keys(data.reactions[emoji]);
@@ -1457,14 +1403,12 @@ function showReactionTooltip(badge, msgData, emoji) {
 
   const msgEl = findMsgElForBadge(badge);
   const rect = msgEl.getBoundingClientRect();
-
   tooltip.classList.remove("hidden");
   tooltip.style.maxWidth = "200px";
 
   const tipRect = tooltip.getBoundingClientRect();
   const top = rect.top - tipRect.height - 8;
   const left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-
   tooltip.style.top = Math.max(6, top) + "px";
   tooltip.style.left = Math.max(6, Math.min(left, window.innerWidth - tipRect.width - 6)) + "px";
 
@@ -1482,24 +1426,17 @@ function hideReactionTooltip() {
 }
 
 function findMsgElForBadge(badge) {
-  return (
-    badge.closest(".msg") ||
-    badge.parentNode?.closest?.(".msg") ||
-    badge.parentElement?.closest?.(".msg") ||
-    null
-  );
+  return ( badge.closest(".msg") || badge.parentNode?.closest?.(".msg") || badge.parentElement?.closest?.(".msg") || null );
 }
 
 document.addEventListener("click", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
-
   e.stopPropagation();
   suppressNextActionMenu = true;
 
   const msgEl = findMsgElForBadge(badge);
   if (!msgEl) return;
-
   toggleReaction(msgEl, badge.dataset.emoji);
 });
 
@@ -1529,57 +1466,34 @@ document.addEventListener("mouseout", (e) => {
   }
 });
 
-document.addEventListener("touchstart", (e) => {
-  if (window.innerWidth > 900) return;
+// inside module scope
+let badgePress = { timer: null, startedAt: 0, badge: null, long: false };
 
-  const badge = e.target.closest(".reaction-badge");
-  if (!badge) return;
-
-  // reset scroll flag for this touch
-  hasScrolledSinceTouch = false;
-  pressStartBadge = badge;
-  longPressTriggered = false;
-
-  const msgEl = findMsgElForBadge(badge);
-  if (!msgEl) return;
-
-  const emoji = badge.dataset.emoji;
-  const msgData = messages[msgEl.dataset.id];
-
-  // clear any previous
-  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-
-  pressTimer = setTimeout(() => {
-    longPressTriggered = true;
-    showReactionTooltip(badge, msgData, emoji);
+document.addEventListener('pointerdown', (ev) => {
+  const badge = ev.target.closest('.reaction-badge');
+  if (!badge || window.innerWidth > 900) return;
+  badgePress.badge = badge;
+  badgePress.long = false;
+  badgePress.startedAt = Date.now();
+  badgePress.timer = setTimeout(() => {
+    badgePress.long = true;
+    showReactionTooltip(badge, messages[findMsgElForBadge(badge).dataset.id], badge.dataset.emoji);
   }, 450);
-}, { passive: false }); // passive:false so preventDefault can be used if needed
+}, {passive:true});
 
-document.addEventListener("touchmove", () => {
-  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-}, { passive: true });
-
-document.addEventListener("touchend", (e) => {
-  if (window.innerWidth > 900) return;
-  if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-
-  const badge = e.target.closest(".reaction-badge");
-  if (!badge || badge !== pressStartBadge) return;
-
-  if (longPressTriggered) {
-    // long-press already handled: do not toggle reaction
-    longPressTriggered = false;
-    pressStartBadge = null;
-    return;
+document.addEventListener('pointerup', (ev) => {
+  const badge = ev.target.closest('.reaction-badge');
+  clearTimeout(badgePress.timer);
+  if (!badge || badge !== badgePress.badge) return;
+  if (!badgePress.long) {
+    // short tap
+    const msgEl = findMsgElForBadge(badge);
+    if (msgEl) toggleReaction(msgEl, badge.dataset.emoji);
   }
+  badgePress.badge = null;
+});
 
-  const msgEl = findMsgElForBadge(badge);
-  if (!msgEl) return;
-
-  toggleReaction(msgEl, badge.dataset.emoji);
-}, { passive: true });
-
-document.addEventListener("click", (e) => {
+/* document.addEventListener("click", (e) => {
   if (!picker) return;
   if (picker.contains(e.target)) return;
   if (e.target.closest(".action-menu, .menu-btn, .action-btn, .reply-btn")) return;
@@ -1588,7 +1502,7 @@ document.addEventListener("click", (e) => {
     return;
   }
   hideReactionPicker();
-});
+}); */
 
 window.addEventListener("scroll", () => {
   hasScrolledSinceTouch = true;
@@ -1605,6 +1519,23 @@ if (picker) {
     };
   });
 }
+
+/* ================= EVENT HANDLERS ================= */
+let GLOBAL_LAST_POINTER_TARGET = null;
+
+document.addEventListener("pointerdown", (ev) => {
+    GLOBAL_LAST_POINTER_TARGET = ev.target;
+}, true);
+
+document.addEventListener("click", (ev) => {
+    const target = ev.target;
+
+    if (target.closest("#reaction-picker")) return;
+    if (target.closest(".action-menu")) return;
+
+    if (typeof hideReactionPicker === "function") hideReactionPicker();
+    if (typeof closeAllMenus === "function") closeAllMenus();
+}, true);
 
 /* ================= PRESENCE / RECOVERY ================= */
 let myPresenceRef = null;
