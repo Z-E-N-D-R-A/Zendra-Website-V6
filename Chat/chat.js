@@ -107,8 +107,8 @@ let currentLongPressMsg = null;
 
 let sheetStartY = 0;
 let sheetCurrentY = 0;
-// let sheetDragging = false;
 let suppressNextActionMenu = false;
+// let sheetDragging = false;
 
 let suppressNewIndicator = false;
 let regroupTimer = null;
@@ -1034,10 +1034,6 @@ function chatSideBar() {
 function attachLongPress(msgEl) {
   if (!msgEl) return;
   let pressTimer;
-  if (suppressNextActionMenu) {
-    suppressNextActionMenu = false;
-    return;
-  }
 
   const start = (e) => {
     if (!(window.innerWidth <= 900)) return;
@@ -1267,6 +1263,10 @@ function handleMobileAction(action, msgEl) {
 }
 
 function openMobileSheet(msgEl) {
+  if (suppressNextActionMenu) {
+    suppressNextActionMenu = false;
+    return;
+  }
   currentMobileMsg = msgEl;
   const id = msgEl.dataset.id;
   const msgData = messages[id];
@@ -1408,6 +1408,16 @@ document.addEventListener("click", (e) => {
   hideReactionPicker();
 });
 
+function findMsgElForBadge(badge) {
+  return (
+    badge.closest(".msg") ||
+    badge.parentNode?.closest?.(".msg") ||
+    badge.parentElement?.closest?.(".msg") ||
+    null
+  );
+}
+
+/* CLICK HANDLER (desktop + some Android) */
 document.addEventListener("click", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
@@ -1415,24 +1425,25 @@ document.addEventListener("click", (e) => {
   e.stopPropagation();
   suppressNextActionMenu = true;
 
-  const msgEl = badge.closest(".msg");
-  const emoji = badge.dataset.emoji;
+  const msgEl = findMsgElForBadge(badge);
+  if (!msgEl) return;
 
-  toggleReaction(msgEl, emoji);
+  toggleReaction(msgEl, badge.dataset.emoji);
 });
 
+/* TOUCH HANDLER (iOS Safari) */
 document.addEventListener("touchstart", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
   e.stopPropagation();
-  e.preventDefault();   // IMPORTANT – stops mobile long-press action menu
+  e.preventDefault();  // prevents long-press menu
   suppressNextActionMenu = true;
 
-  const msgEl = badge.closest(".msg");
-  const emoji = badge.dataset.emoji;
+  const msgEl = findMsgElForBadge(badge);
+  if (!msgEl) return;
 
-  toggleReaction(msgEl, emoji);
+  toggleReaction(msgEl, badge.dataset.emoji);
 }, { passive: false });
 
 if (picker) {
