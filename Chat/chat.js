@@ -1285,6 +1285,7 @@ function closeMobileSheet() {
   const sheet = document.getElementById("mobile-action-sheet");
 
   sheet.classList.remove("open");
+  sheet.style.transform = "";
   actionBackdrop.classList.remove("show");
 
   currentMobileMsg = null;
