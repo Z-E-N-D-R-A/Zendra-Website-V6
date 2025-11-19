@@ -1046,24 +1046,19 @@ function attachLongPress(msgEl) {
   let pressTimer;
 
   const start = (e) => {
-  hasScrolledSinceTouch = false;
+    hasScrolledSinceTouch = false;
 
-  // Prevent conflict with reaction badges
-  if (e.target.closest(".reaction-badge")) return;
+    if (e.target.closest(".reaction-badge")) return;
+    if (!(window.innerWidth <= 900)) return;
 
-  if (!(window.innerWidth <= 900)) return;
+    if (!hasScrolledSinceTouch) {
+      e.preventDefault();
+    } else {
+      return;
+    }
 
-  // Only allow preventDefault if the user has NOT scrolled
-  if (!hasScrolledSinceTouch) {
-    e.preventDefault();
-  } else {
-    return; // long-press disabled after scrolling until new clean touch
-  }
-
-  pressTimer = setTimeout(() => {
-    openMobileSheet(msgEl);
-  }, 420);
-};
+    pressTimer = setTimeout(() => { openMobileSheet(msgEl);  }, 420);
+  };
 
   const cancel = () => clearTimeout(pressTimer);
 
@@ -1501,7 +1496,7 @@ document.addEventListener("mouseout", (e) => {
 });
 
 document.addEventListener("touchstart", (e) => {
-  if (window.innerWidth > 900) return; // mobile only
+  if (window.innerWidth > 900) return;
 
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
@@ -1515,11 +1510,10 @@ document.addEventListener("touchstart", (e) => {
   const emoji = badge.dataset.emoji;
   const msgData = messages[msgEl.dataset.id];
 
-  // start long-press detection
   pressTimer = setTimeout(() => {
     longPressTriggered = true;
     showReactionTooltip(badge, msgData, emoji);
-  }, 450); // long-press duration
+  }, 450);
 }, { passive: true });
 
 document.addEventListener("touchmove", () => {
@@ -1527,29 +1521,18 @@ document.addEventListener("touchmove", () => {
 }, { passive: true });
 
 document.addEventListener("touchend", (e) => {
-  if (window.innerWidth > 900) return; // mobile only
-
+  if (window.innerWidth > 900) return;
   clearTimeout(pressTimer);
 
   const badge = e.target.closest(".reaction-badge");
   if (!badge || badge !== pressStartBadge) return;
 
-  // If long-press already triggered → DO NOT toggle reaction
   if (longPressTriggered) return;
 
-  // Normal tap (short press) → toggle reaction
   const msgEl = findMsgElForBadge(badge);
   if (!msgEl) return;
 
   toggleReaction(msgEl, badge.dataset.emoji);
-}, { passive: true });
-
-document.addEventListener("touchend", () => {
-  clearTimeout(tooltipPressTimer);
-}, { passive: true });
-
-document.addEventListener("touchmove", () => {
-  clearTimeout(tooltipPressTimer);
 }, { passive: true });
 
 document.addEventListener("click", (e) => {
@@ -1563,7 +1546,6 @@ document.addEventListener("click", (e) => {
   hideReactionPicker();
 });
 
-// Hide reaction tooltip on scroll (mobile only)
 window.addEventListener("scroll", () => {
   hasScrolledSinceTouch = true;
   hideReactionTooltip();
