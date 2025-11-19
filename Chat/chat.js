@@ -124,6 +124,8 @@ let regroupTimer = null;
 let userIsAtBottom = true;
 let replyToId = null;
 
+let hasScrolledSinceTouch = false;
+
 const typingRef = firebase.database().ref("typing");
 typingRef.on("value", snap => {
   const data = snap.val() || {};
@@ -1044,16 +1046,24 @@ function attachLongPress(msgEl) {
   let pressTimer;
 
   const start = (e) => {
-    // ⛔ NEW: prevent conflict with reaction badges
-    if (e.target.closest(".reaction-badge")) return;
+  hasScrolledSinceTouch = false;
 
-    if (!(window.innerWidth <= 900)) return;
+  // Prevent conflict with reaction badges
+  if (e.target.closest(".reaction-badge")) return;
+
+  if (!(window.innerWidth <= 900)) return;
+
+  // Only allow preventDefault if the user has NOT scrolled
+  if (!hasScrolledSinceTouch) {
     e.preventDefault();
+  } else {
+    return; // long-press disabled after scrolling until new clean touch
+  }
 
-    pressTimer = setTimeout(() => {
-      openMobileSheet(msgEl);
-    }, 420);
-  };
+  pressTimer = setTimeout(() => {
+    openMobileSheet(msgEl);
+  }, 420);
+};
 
   const cancel = () => clearTimeout(pressTimer);
 
@@ -1555,9 +1565,8 @@ document.addEventListener("click", (e) => {
 
 // Hide reaction tooltip on scroll (mobile only)
 window.addEventListener("scroll", () => {
-  if (window.innerWidth <= 900) {
-    hideReactionTooltip();
-  }
+  hasScrolledSinceTouch = true;
+  hideReactionTooltip();
 }, { passive: true });
 
 if (picker) {
