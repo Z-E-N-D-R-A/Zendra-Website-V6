@@ -107,7 +107,7 @@ let currentLongPressMsg = null;
 
 let sheetStartY = 0;
 let sheetCurrentY = 0;
-let sheetDragging = false;
+// let sheetDragging = false;
 let suppressNextActionMenu = false;
 
 let suppressNewIndicator = false;
@@ -1058,7 +1058,7 @@ function attachLongPress(msgEl) {
   msgEl.addEventListener("mouseleave", cancel);
 }
 
-function enableSheetDrag() {
+/* function enableSheetDrag() {
   const sheet = document.getElementById("mobile-action-sheet");
 
   sheet.addEventListener("touchstart", e => {
@@ -1088,7 +1088,7 @@ function enableSheetDrag() {
       actionBackdrop.style.opacity = 1;
     }
   });
-}
+} */
 
 function enableSwipeToReply(msgEl) {
   let startX = 0;
@@ -1111,14 +1111,14 @@ function enableSwipeToReply(msgEl) {
   msgEl.addEventListener("touchend", () => { swiping = false; });
 }
 
-document.addEventListener("DOMContentLoaded", enableSheetDrag);
+// document.addEventListener("DOMContentLoaded", enableSheetDrag);
 document.addEventListener("DOMContentLoaded", chatSideBar);
 
-document.addEventListener("touchstart", e => {
+/* document.addEventListener("touchstart", e => {
   if (e.target.closest(".msg")) {
     e.preventDefault();
   }
-}, { passive: false });
+}, { passive: false }); */
 
 window.addEventListener("resize", updateAllActionPositions);
 function updateAllActionPositions() {
@@ -1287,8 +1287,13 @@ function closeMobileSheet() {
   sheet.classList.remove("open");
   sheet.style.transform = "";
   actionBackdrop.classList.remove("show");
+  actionBackdrop.style.pointerEvents = "none";
 
   currentMobileMsg = null;
+  
+  setTimeout(() => {
+    actionBackdrop.style.pointerEvents = "";
+  }, 300);
 }
 
 document.querySelectorAll(".sheet-option").forEach(opt => {
@@ -1301,9 +1306,7 @@ document.querySelectorAll(".sheet-option").forEach(opt => {
 });
 
 document.querySelector(".sheet-cancel").addEventListener("click", closeMobileSheet);
-document.getElementById("sheet-backdrop").addEventListener("click", () => {
-  closeMobileSheet();
-});
+document.getElementById("sheet-backdrop").addEventListener("click",  closeMobileSheet);
 
 /* ================= REACTION MENU HANDLER ================= */
 if (picker && picker.parentNode !== document.body) {
