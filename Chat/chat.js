@@ -107,6 +107,8 @@ let tooltipTimer = null;
 let tooltipPressTimer = null;
 let pickerTarget = null;
 let longPressTriggered = false;
+let pressTimer = null;
+let pressStartBadge = null;
 
 let currentMobileMsg = null;
 let longPressTimeout = null;
@@ -1042,19 +1044,24 @@ function attachLongPress(msgEl) {
   let pressTimer;
 
   const start = (e) => {
+    // ⛔ NEW: prevent conflict with reaction badges
+    if (e.target.closest(".reaction-badge")) return;
+
     if (!(window.innerWidth <= 900)) return;
     e.preventDefault();
+
     pressTimer = setTimeout(() => {
       openMobileSheet(msgEl);
     }, 420);
   };
+
   const cancel = () => clearTimeout(pressTimer);
 
   msgEl.addEventListener("touchstart", start, { passive: false });
   msgEl.addEventListener("touchend", cancel);
   msgEl.addEventListener("touchmove", cancel);
   msgEl.addEventListener("touchcancel", cancel);
-
+  
   msgEl.addEventListener("mousedown", start);
   msgEl.addEventListener("mouseup", cancel);
   msgEl.addEventListener("mouseleave", cancel);
@@ -1457,20 +1464,6 @@ document.addEventListener("click", (e) => {
   toggleReaction(msgEl, badge.dataset.emoji);
 });
 
-document.addEventListener("touchstart", (e) => {
-  const badge = e.target.closest(".reaction-badge");
-  if (!badge) return;
-
-  e.stopPropagation();
-  e.preventDefault();
-  suppressNextActionMenu = true;
-
-  const msgEl = findMsgElForBadge(badge);
-  if (!msgEl) return;
-
-  toggleReaction(msgEl, badge.dataset.emoji);
-}, { passive: false });
-
 document.addEventListener("mouseover", (e) => {
   if (window.innerWidth <= 900) return;
 
@@ -1498,10 +1491,13 @@ document.addEventListener("mouseout", (e) => {
 });
 
 document.addEventListener("touchstart", (e) => {
-  if (window.innerWidth > 900) return;
+  if (window.innerWidth > 900) return; // mobile only
 
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
+
+  pressStartBadge = badge;
+  longPressTriggered = false;
 
   const msgEl = findMsgElForBadge(badge);
   if (!msgEl) return;
@@ -1509,8 +1505,33 @@ document.addEventListener("touchstart", (e) => {
   const emoji = badge.dataset.emoji;
   const msgData = messages[msgEl.dataset.id];
 
-  longPressTriggered = false;
-  tooltipPressTimer = setTimeout(() => { longPressTriggered = true; showReactionTooltip(badge, msgData, emoji); }, 450);
+  // start long-press detection
+  pressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    showReactionTooltip(badge, msgData, emoji);
+  }, 450); // long-press duration
+}, { passive: true });
+
+document.addEventListener("touchmove", () => {
+  clearTimeout(pressTimer);
+}, { passive: true });
+
+document.addEventListener("touchend", (e) => {
+  if (window.innerWidth > 900) return; // mobile only
+
+  clearTimeout(pressTimer);
+
+  const badge = e.target.closest(".reaction-badge");
+  if (!badge || badge !== pressStartBadge) return;
+
+  // If long-press already triggered → DO NOT toggle reaction
+  if (longPressTriggered) return;
+
+  // Normal tap (short press) → toggle reaction
+  const msgEl = findMsgElForBadge(badge);
+  if (!msgEl) return;
+
+  toggleReaction(msgEl, badge.dataset.emoji);
 }, { passive: true });
 
 document.addEventListener("touchend", () => {
@@ -1519,19 +1540,6 @@ document.addEventListener("touchend", () => {
 
 document.addEventListener("touchmove", () => {
   clearTimeout(tooltipPressTimer);
-}, { passive: true });
-
-document.addEventListener("touchend", (e) => {
-  if (window.innerWidth > 900) return;
-  if (longPressTriggered) return;
-
-  const badge = e.target.closest(".reaction-badge");
-  if (!badge) return;
-
-  const msgEl = findMsgElForBadge(badge);
-  if (!msgEl) return;
-
-  toggleReaction(msgEl, badge.dataset.emoji);
 }, { passive: true });
 
 document.addEventListener("click", (e) => {
