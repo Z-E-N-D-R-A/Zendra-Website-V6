@@ -95,7 +95,8 @@ const onlineCountEl = document.getElementById("onlineCount") || null;
 
 const isMobile = window.matchMedia("(max-width: 900px)").matches;
 const sheet = document.getElementById("mobile-action-sheet");
-const backdrop = document.getElementById("sheet-backdrop");
+const actionBackdrop = document.getElementById("sheet-backdrop");
+const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 
 const deletedMessages = new Set();
 const picker = document.getElementById("reaction-picker");
@@ -208,7 +209,6 @@ function insertDateSeparatorAppend(ts) {
       return sep;
     }
   }
-
   messagesEl.appendChild(sep);
   return sep;
 }
@@ -1011,7 +1011,6 @@ function hideNewMsgIndicator() {
 function chatSideBar() {
   const sidebar = document.querySelector(".sidebar");
   const toggleBtn = document.querySelector(".sidebar-toggle");
-  const backdrop = document.getElementById("sidebar-backdrop");
 
   function isMobile() {
     return window.matchMedia("(max-width: 900px)").matches;
@@ -1020,69 +1019,47 @@ function chatSideBar() {
   toggleBtn.addEventListener("click", () => {
     if (isMobile()) {
       const isOpen = sidebar.classList.toggle("open");
-      backdrop.classList.toggle("show", isOpen);
+      sidebarBackdrop.classList.toggle("show", isOpen);
     } else {
       sidebar.classList.toggle("collapsed");
     }
   });
 
-  backdrop.addEventListener("click", () => {
+  sidebarBackdrop.addEventListener("click", () => {
     sidebar.classList.remove("open");
-    backdrop.classList.remove("show");
+    sidebarBackdrop.classList.remove("show");
   });
 }
 
 function attachLongPress(msgEl) {
   if (!msgEl) return;
+  let pressTimer;
+  if (suppressNextActionMenu) {
+    suppressNextActionMenu = false;
+    return;
+  }
 
-  // don't attach desktop long-press handlers
-  // use runtime check so resize/mobile toggles will be respected
   const start = (e) => {
-    // only mobile/tablet
-    if (!(window.matchMedia("(max-width: 900px)").matches)) return;
-    // if a reaction just happened, suppress the long-press menu
-    if (suppressNextActionMenu) {
-      // consume one suppression and reset after a tiny delay to be safe
-      suppressNextActionMenu = false;
-      setTimeout(() => { suppressNextActionMenu = false; }, 50);
-      return;
-    }
-
-    // prevent default so the browser context-menu / selection won't interfere
-    if (e.cancelable) e.preventDefault();
-
-    // store which msg started long-press so we can cancel it
-    currentLongPressMsg = msgEl;
-    longPressTimeout = setTimeout(() => {
+    if (!(window.innerWidth <= 900)) return;
+    e.preventDefault();
+    pressTimer = setTimeout(() => {
       openMobileSheet(msgEl);
-      currentLongPressMsg = null;
-      longPressTimeout = null;
     }, 420);
   };
+  const cancel = () => clearTimeout(pressTimer);
 
-  const cancel = () => {
-    if (longPressTimeout) {
-      clearTimeout(longPressTimeout);
-      longPressTimeout = null;
-      currentLongPressMsg = null;
-    }
-  };
-
-  // touch handlers (mobile)
   msgEl.addEventListener("touchstart", start, { passive: false });
   msgEl.addEventListener("touchend", cancel);
   msgEl.addEventListener("touchmove", cancel);
   msgEl.addEventListener("touchcancel", cancel);
 
-  // fallback for mouse (desktop) — we don't open mobile sheet on desktop though
-  msgEl.addEventListener("mousedown", (ev) => {
-    // don't do long-press on desktop
-  });
+  msgEl.addEventListener("mousedown", start);
+  msgEl.addEventListener("mouseup", cancel);
+  msgEl.addEventListener("mouseleave", cancel);
 }
 
 function enableSheetDrag() {
   const sheet = document.getElementById("mobile-action-sheet");
-  const backdrop = document.getElementById("sheet-backdrop");
 
   sheet.addEventListener("touchstart", e => {
     sheetDragging = true;
@@ -1096,7 +1073,7 @@ function enableSheetDrag() {
 
     if (sheetCurrentY > 0) {
       sheet.style.transform = `translateY(${sheetCurrentY}px)`;
-      backdrop.style.opacity = Math.max(0, 1 - sheetCurrentY / 250);
+      actionBackdrop.style.opacity = Math.max(0, 1 - sheetCurrentY / 250);
     }
   });
 
@@ -1108,7 +1085,7 @@ function enableSheetDrag() {
       closeMobileSheet();
     } else {
       sheet.style.transform = "translateY(0)";
-      backdrop.style.opacity = 1;
+      actionBackdrop.style.opacity = 1;
     }
   });
 }
@@ -1136,6 +1113,12 @@ function enableSwipeToReply(msgEl) {
 
 document.addEventListener("DOMContentLoaded", enableSheetDrag);
 document.addEventListener("DOMContentLoaded", chatSideBar);
+
+document.addEventListener("touchstart", e => {
+  if (e.target.closest(".msg")) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 window.addEventListener("resize", updateAllActionPositions);
 function updateAllActionPositions() {
@@ -1284,61 +1267,48 @@ function handleMobileAction(action, msgEl) {
 }
 
 function openMobileSheet(msgEl) {
-  if (!msgEl) return;
   currentMobileMsg = msgEl;
   const id = msgEl.dataset.id;
-  const msgData = messages[id] || {};
+  const msgData = messages[id];
   const isMe = msgData.clientId === clientId;
 
-  const editOpt = document.querySelector('[data-action="edit"]');
-  const delOpt  = document.querySelector('[data-action="delete"]');
-  if (editOpt) editOpt.style.display = isMe ? "block" : "none";
-  if (delOpt)  delOpt.style.display = isMe ? "block" : "none";
+  document.querySelector('[data-action="edit"]').style.display = isMe ? "block" : "none";
+  document.querySelector('[data-action="delete"]').style.display = isMe ? "block" : "none";
 
-  // show sheet + backdrop
+  const sheet = document.getElementById("mobile-action-sheet");
   sheet.classList.add("open");
   sheet.style.transform = "translateY(0)";
-  backdrop.classList.add("show");
-  // ensure pointer events are enabled
-  backdrop.style.pointerEvents = "all";
-
-  // also prevent accidental immediate reopen from a prior touch
-  suppressNextActionMenu = false;
-  setTimeout(() => { suppressNextActionMenu = false; }, 50);
+  actionBackdrop.classList.add("show");
 }
 
 function closeMobileSheet() {
+  const sheet = document.getElementById("mobile-action-sheet");
+
   sheet.classList.remove("open");
   sheet.style.transform = "";
-  backdrop.classList.remove("show");
+  actionBackdrop.classList.remove("show");
+  actionBackdrop.style.pointerEvents = "none";
 
-  // ensure backdrop is hidden and not blocking
-  backdrop.style.pointerEvents = "none";
-
-  // reset current
   currentMobileMsg = null;
-
-  // small timeout to fully clear any inline styles (helps mobile safaris)
+  
   setTimeout(() => {
-    // tidy inline styles so CSS fully controls appearance again
-    backdrop.style.pointerEvents = "";
-  }, 260);
+    actionBackdrop.style.pointerEvents = "";
+  }, 300);
 }
 
 document.querySelectorAll(".sheet-option").forEach(opt => {
-  opt.addEventListener("click", (ev) => {
-    ev.stopPropagation();
+  opt.addEventListener("click", () => {
     const action = opt.dataset.action;
     if (currentMobileMsg) {
       handleMobileAction(action, currentMobileMsg);
     }
-    // ensure sheet closes
-    closeMobileSheet();
   });
 });
 
 document.querySelector(".sheet-cancel").addEventListener("click", closeMobileSheet);
-document.getElementById("sheet-backdrop").addEventListener("click", closeMobileSheet);
+document.getElementById("sheet-backdrop").addEventListener("click", () => {
+  closeMobileSheet();
+});
 
 /* ================= REACTION MENU HANDLER ================= */
 if (picker && picker.parentNode !== document.body) {
@@ -1440,40 +1410,29 @@ document.addEventListener("click", (e) => {
   hideReactionPicker();
 });
 
-// Make reaction taps robust on both mobile and desktop.
-// We stop propagation and prevent default on touch so the msg touchstart won't fire.
 document.addEventListener("click", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
   e.stopPropagation();
-  // set suppress so a very-quick following touch won't open the sheet
   suppressNextActionMenu = true;
-  // safety clear after 300ms
-  setTimeout(() => { suppressNextActionMenu = false; }, 300);
 
   const msgEl = badge.closest(".msg");
   const emoji = badge.dataset.emoji;
-  if (!msgEl || !emoji) return;
 
   toggleReaction(msgEl, emoji);
 });
 
-// Touch handler for mobile (passive:false so we can preventDefault)
 document.addEventListener("touchstart", (e) => {
   const badge = e.target.closest(".reaction-badge");
   if (!badge) return;
 
-  // Prevent the message touchstart/long-press from firing
   e.stopPropagation();
-  if (e.cancelable) e.preventDefault();
-
+  e.preventDefault();   // IMPORTANT – stops mobile long-press action menu
   suppressNextActionMenu = true;
-  setTimeout(() => { suppressNextActionMenu = false; }, 300);
 
   const msgEl = badge.closest(".msg");
   const emoji = badge.dataset.emoji;
-  if (!msgEl || !emoji) return;
 
   toggleReaction(msgEl, emoji);
 }, { passive: false });
