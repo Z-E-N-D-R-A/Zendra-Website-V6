@@ -790,7 +790,6 @@ input, textarea, button, select {
   z-index: 900;
 }
 
-.sheet-backdrop.show {
+.sheet-backdrop .show {
   opacity: 1;
-  pointer-events: all;
 }
