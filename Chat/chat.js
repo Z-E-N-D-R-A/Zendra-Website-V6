@@ -82,9 +82,9 @@ const sendBtn = document.getElementById("sendBtn") || null;
 
 const recoveryInput = document.getElementById("recoveryInput") || null;
 const restoreBtn = document.getElementById("restoreBtn") || null;
-const recoveryDisplay = document.getElementById("recoveryDisplay") || null;
-const recoveryCodeText = document.getElementById("recoveryCodeText") || null;
-const copyRecoveryBtn = document.getElementById("copyRecoveryBtn") || null;
+// const recoveryDisplay = document.getElementById("recoveryDisplay") || null;
+// const recoveryCodeText = document.getElementById("recoveryCodeText") || null;
+// const copyRecoveryBtn = document.getElementById("copyRecoveryBtn") || null;
 
 const loadOlderBtn = document.getElementById("loadOlderBtn");
 const spinner = document.getElementById("spinner") || document.getElementById("loadingOlder") || null;
@@ -94,38 +94,35 @@ const whoEl = document.getElementById("who") || null;
 const onlineCountEl = document.getElementById("onlineCount") || null;
 
 const isMobile = window.matchMedia("(max-width: 900px)").matches;
+
 const sheet = document.getElementById("mobile-action-sheet");
 const actionBackdrop = document.getElementById("sheet-backdrop");
 const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 
-let allUsers = {};
-const deletedMessages = new Set();
-let badgePress = { timer: null, startedAt: 0, badge: null, long: false };
 const picker = document.getElementById("reaction-picker");
 const tooltip = document.getElementById("reaction-tooltip");
 
+const deletedMessages = new Set();
+
+let allUsers = {};
+let replyToId = null;
+let pickerTarget = null;
+let currentMobileMsg = null;
+
+let pressTimer = null;
+let resizeTimer = null;
+let regroupTimer = null;
 let tooltipTimer = null;
 let tooltipPressTimer = null;
-let pickerTarget = null;
-let longPressTriggered = false;
-let pressTimer = null;
-let pressStartBadge = null;
-let lastScrollTime = 0;
 
-let currentMobileMsg = null;
-let longPressTimeout = null;
-let currentLongPressMsg = null;
-
-let sheetStartY = 0;
-let sheetCurrentY = 0;
+let userIsAtBottom = true;
+let hasScrolledSinceTouch = false;
 let suppressNextActionMenu = false;
 
-let suppressNewIndicator = false;
-let regroupTimer = null;
-let userIsAtBottom = true;
-let replyToId = null;
-
-let hasScrolledSinceTouch = false;
+// let longPressTriggered = false;
+// let pressStartBadge = null;
+// let lastScrollTime = 0;
+// let suppressNewIndicator = false;
 
 const typingRef = firebase.database().ref("typing");
 typingRef.on("value", snap => {
@@ -133,6 +130,7 @@ typingRef.on("value", snap => {
   updateTypingIndicator(data);
 });
 
+let badgePress = { timer: null, startedAt: 0, badge: null, long: false };
 const colors = ["#ffae00", "#f700ff", "#00b7ff", "#00ffb3", "#fbff00"];
 
 /* ================= UTILITIES: escape, timeAgo, date label ================= */
@@ -405,7 +403,7 @@ function appendMessage(data) {
   attachActionHandlers(el, id, data);
 
   const isMe = data.clientId === clientId;
-  if (suppressNewIndicator) { return el; }
+  // if (suppressNewIndicator) { return el; }
   if (isMe && messagesViewport) {
     hideNewMsgIndicator();
     messagesViewport.scrollTop = messagesViewport.scrollHeight;
@@ -991,130 +989,6 @@ function regroupMessages() {
   });
 }
 
-/* ================= BEHAVIORS: scroll handling & indicator ================= */
-if (messagesViewport) {
-  messagesViewport.addEventListener("scroll", () => {
-    const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
-    userIsAtBottom = nearBottom;
-    if (nearBottom) hideNewMsgIndicator();
-    hasScrolledSinceTouch = true;
-
-    if (typeof pressTimer !== "undefined" && pressTimer) {
-      clearTimeout(pressTimer);
-      pressTimer = null;
-    }
-    if (typeof tooltipPressTimer !== "undefined" && tooltipPressTimer) {
-      clearTimeout(tooltipPressTimer);
-      tooltipPressTimer = null;
-    }
-
-    longPressTriggered = false;
-    pressStartBadge = null;
-
-    try { hideReactionTooltip(); } catch (e) {}
-    try { hideReactionPicker(); } catch (e) {}
-  }, { passive: true });
-}
-
-function showNewMsgIndicator() {
-  if (newMsgIndicator) {
-    newMsgIndicator.style.display = "block";
-    newMsgIndicator.classList.remove("hidden");
-  }
-}
-
-function hideNewMsgIndicator() {
-  if (newMsgIndicator) {
-    newMsgIndicator.classList.add("hidden");
-    setTimeout(() => {
-      if (newMsgIndicator.classList.contains("hidden"))
-        newMsgIndicator.style.display = "none";
-    }, 200);
-  }
-}
-
-function chatSideBar() {
-  const sidebar = document.querySelector(".sidebar");
-  const toggleBtn = document.querySelector(".sidebar-toggle");
-
-  function isMobile() {
-    return window.matchMedia("(max-width: 900px)").matches;
-  }
-
-  toggleBtn.addEventListener("click", () => {
-    if (isMobile()) {
-      const isOpen = sidebar.classList.toggle("open");
-      sidebarBackdrop.classList.toggle("show", isOpen);
-    } else {
-      sidebar.classList.toggle("collapsed");
-    }
-  });
-
-  sidebarBackdrop.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    sidebarBackdrop.classList.remove("show");
-  });
-}
-
-function attachLongPress(msgEl) {
-  if (!msgEl) return;
-  let pressTimer;
-
-  const start = (e) => {
-    hasScrolledSinceTouch = false;
-
-    if (e.target.closest(".reaction-badge")) return;
-    if (!(window.innerWidth <= 900)) return;
-    if (hasScrolledSinceTouch) return;
-
-    try { e.preventDefault(); } catch (err) { }
-
-    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-    pressTimer = setTimeout(() => { openMobileSheet(msgEl); }, 420);
-  };
-
-  const cancel = () => clearTimeout(pressTimer);
-
-  msgEl.addEventListener("touchstart", start, { passive: false });
-  msgEl.addEventListener("touchend", cancel);
-  msgEl.addEventListener("touchmove", cancel);
-  msgEl.addEventListener("touchcancel", cancel);
-
-  msgEl.addEventListener("mousedown", start);
-  msgEl.addEventListener("mouseup", cancel);
-  msgEl.addEventListener("mouseleave", cancel);
-}
-
-function enableSwipeToReply(msgEl) {
-  let startX = 0;
-  let swiping = false;
-
-  msgEl.addEventListener("touchstart", e => {
-    startX = e.touches[0].clientX;
-    swiping = true;
-  });
-
-  msgEl.addEventListener("touchmove", e => {
-    if (!swiping) return;
-    const deltaX = e.touches[0].clientX - startX;
-    if (deltaX > 40) {
-      swiping = false;
-      startReply(msgEl);
-    }
-  });
-
-  msgEl.addEventListener("touchend", () => { swiping = false; });
-}
-
-document.addEventListener("DOMContentLoaded", chatSideBar);
-
-window.addEventListener("resize", updateAllActionPositions);
-function updateAllActionPositions() {
-  requestAnimationFrame(updateAllBubbleAlignments);
-  document.querySelectorAll(".msg").forEach(positionActions);
-  document.querySelectorAll(".msg").forEach(positionIcons);
-}
-
 /* ================= ACTION MENU HANDLER ================= */
 function attachActionHandlers(el, id, data) {
   const menuBtn = el.querySelector(".menu-btn");
@@ -1227,6 +1101,7 @@ function closeAllMenus({ except = null } = {}) {
 function handleMobileAction(action, msgEl) {
   const id = msgEl.dataset.id;
   const msgData = messages[id];
+  if (!msgData) return;
   const isMe = msgData.clientId === clientId;
 
   switch (action) {
@@ -1257,20 +1132,18 @@ function openMobileSheet(msgEl) {
   currentMobileMsg = msgEl;
   const id = msgEl.dataset.id;
   const msgData = messages[id];
+  if (!msgData) return;
   const isMe = msgData.clientId === clientId;
 
   document.querySelector('[data-action="edit"]').style.display = isMe ? "block" : "none";
   document.querySelector('[data-action="delete"]').style.display = isMe ? "block" : "none";
 
-  const sheet = document.getElementById("mobile-action-sheet");
   sheet.classList.add("open");
   sheet.style.transform = "translateY(0)";
   actionBackdrop.classList.add("show");
 }
 
 function closeMobileSheet() {
-  const sheet = document.getElementById("mobile-action-sheet");
-
   sheet.classList.remove("open");
   sheet.style.transform = "";
   actionBackdrop.classList.remove("show");
@@ -1494,7 +1367,7 @@ document.addEventListener('pointerup', (ev) => {
 }); */
 
 window.addEventListener('scroll', () => {
-  lastScrollTime = Date.now();
+  // lastScrollTime = Date.now();
   hideReactionTooltip();
 }, { passive: true });
 
@@ -1511,11 +1384,123 @@ if (picker) {
 
 /* ================= EVENT HANDLERS ================= */
 let GLOBAL_LAST_POINTER_TARGET = null;
+if (messagesViewport) {
+  messagesViewport.addEventListener("scroll", () => {
+    const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
+    userIsAtBottom = nearBottom;
+    if (nearBottom) hideNewMsgIndicator();
+    hasScrolledSinceTouch = true;
 
-document.addEventListener("pointerdown", (ev) => {
-    GLOBAL_LAST_POINTER_TARGET = ev.target;
-}, true);
+    if (typeof pressTimer !== "undefined" && pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    if (typeof tooltipPressTimer !== "undefined" && tooltipPressTimer) {
+      clearTimeout(tooltipPressTimer);
+      tooltipPressTimer = null;
+    }
 
+    //  pressStartBadge = null;
+
+    try { hideReactionTooltip(); } catch (e) {}
+    try { hideReactionPicker(); } catch (e) {}
+  }, { passive: true });
+}
+
+function showNewMsgIndicator() {
+  if (newMsgIndicator) {
+    newMsgIndicator.style.display = "block";
+    newMsgIndicator.classList.remove("hidden");
+  }
+}
+
+function hideNewMsgIndicator() {
+  if (newMsgIndicator) {
+    newMsgIndicator.classList.add("hidden");
+    setTimeout(() => {
+      if (newMsgIndicator.classList.contains("hidden"))
+        newMsgIndicator.style.display = "none";
+    }, 200);
+  }
+}
+
+function updateAllActionPositions() {
+  requestAnimationFrame(updateAllBubbleAlignments);
+  document.querySelectorAll(".msg").forEach(positionActions);
+  document.querySelectorAll(".msg").forEach(positionIcons);
+}
+
+function chatSideBar() {
+  const sidebar = document.querySelector(".sidebar");
+  const toggleBtn = document.querySelector(".sidebar-toggle");
+
+  toggleBtn.addEventListener("click", () => {
+    if (isMobile()) {
+      const isOpen = sidebar.classList.toggle("open");
+      sidebarBackdrop.classList.toggle("show", isOpen);
+    } else {
+      sidebar.classList.toggle("collapsed");
+    }
+  });
+
+  sidebarBackdrop.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    sidebarBackdrop.classList.remove("show");
+  });
+}
+
+function attachLongPress(msgEl) {
+  if (!msgEl) return;
+  let pressTimer;
+
+  const start = (e) => {
+    hasScrolledSinceTouch = false;
+
+    if (e.target.closest(".reaction-badge")) return;
+    if (!(window.innerWidth <= 900)) return;
+    if (hasScrolledSinceTouch) return;
+
+    try { e.preventDefault(); } catch (err) { }
+
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    pressTimer = setTimeout(() => { openMobileSheet(msgEl); }, 420);
+  };
+
+  const cancel = () => clearTimeout(pressTimer);
+
+  msgEl.addEventListener("touchstart", start, { passive: false });
+  msgEl.addEventListener("touchend", cancel);
+  msgEl.addEventListener("touchmove", cancel);
+  msgEl.addEventListener("touchcancel", cancel);
+
+  msgEl.addEventListener("mousedown", start);
+  msgEl.addEventListener("mouseup", cancel);
+  msgEl.addEventListener("mouseleave", cancel);
+}
+
+function enableSwipeToReply(msgEl) {
+  let startX = 0;
+  let swiping = false;
+
+  msgEl.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+    swiping = true;
+  });
+
+  msgEl.addEventListener("touchmove", e => {
+    if (!swiping) return;
+    const deltaX = e.touches[0].clientX - startX;
+    if (deltaX > 40) {
+      swiping = false;
+      startReply(msgEl);
+    }
+  });
+
+  msgEl.addEventListener("touchend", () => { swiping = false; });
+}
+
+document.addEventListener("DOMContentLoaded", chatSideBar);
+document.addEventListener("pointerdown", (ev) => { GLOBAL_LAST_POINTER_TARGET = ev.target; }, true);
 document.addEventListener("click", (ev) => {
     const target = ev.target;
 
@@ -1525,6 +1510,11 @@ document.addEventListener("click", (ev) => {
     if (typeof hideReactionPicker === "function") hideReactionPicker();
     if (typeof closeAllMenus === "function") closeAllMenus();
 }, true);
+
+window.addEventListener('resize', () => {
+  if (resizeTimer) cancelAnimationFrame(resizeTimer);
+  resizeTimer = requestAnimationFrame(() => updateAllActionPositions());
+});
 
 /* ================= PRESENCE / RECOVERY ================= */
 let myPresenceRef = null;
@@ -1653,11 +1643,11 @@ if (recoveryInput) {
   };
 }
 
-if (copyRecoveryBtn) {
+/* if (copyRecoveryBtn) {
   copyRecoveryBtn.onclick = () => {
     if (recoveryCodeText) navigator.clipboard.writeText(recoveryCodeText.textContent || "");
   };
-}
+} */
 
 setInterval(() => {
   const timeEls = Array.from(document.querySelectorAll(".time"));
