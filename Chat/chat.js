@@ -120,7 +120,7 @@ let hasScrolledSinceTouch = false;
 let suppressNextActionMenu = false;
 
 // let longPressTriggered = false;
-// let pressStartBadge = null;
+let pressStartBadge = null;
 // let lastScrollTime = 0;
 // let suppressNewIndicator = false;
 
@@ -617,6 +617,18 @@ function cancelEdit() {
   if (cancelBtn) cancelBtn.remove();
 }
 
+function triggerReplySwipe(msgEl, deltaX) {
+  msgEl.style.transition = "transform 0.25s ease";
+  msgEl.style.transform = `translateX(${deltaX > 0 ? 35 : -35}px)`;
+
+  setTimeout(() => {
+    msgEl.style.transform = "";
+    msgEl.style.transition = "";
+  }, 250);
+
+  startReply(msgEl);
+}
+
 function startReply(msgEl) {
   const id = msgEl.dataset.id;
   const msg = messages[id];
@@ -638,8 +650,29 @@ function renderReplyPreview(msg) {
   return `
   <div class="reply-bubble" data-reply-jump="${msg.replyToId}">
     <strong>${escapeHtml(original.name)}</strong>
-    <div class="reply-snippet">${escapeHtml(original.text.slice(0, 80))}</div>
+    <div class="reply-snippet">
+      ${escapeHtml(original.text.slice(0, 80))}${original.edited ? " (edited)" : ""}
+    </div>
   </div>`;
+}
+
+function refreshAllReplyPreviews() {
+  document.querySelectorAll(".msg").forEach(msgEl => {
+    const id = msgEl.dataset.id;
+    const msg = messages[id];
+    if (!msg || !msg.replyToId) return;
+
+    const original = messages[msg.replyToId];
+    const bubble = msgEl.querySelector(".reply-bubble");
+    if (bubble && original) {
+      bubble.innerHTML = `
+        <strong>${escapeHtml(original.name)}</strong>
+        <div class="reply-snippet">
+          ${escapeHtml(original.text.slice(0, 80))}${original.edited ? " (edited)" : ""}
+        </div>
+      `;
+    }
+  });
 }
 
 function activateReplyJump(msgEl) {
@@ -737,6 +770,7 @@ messagesRef.on("child_changed", snap => {
 
   if (domCache[id]) {
     updateMessageElement(messages[id]);
+    refreshAllReplyPreviews();
     positionActions(domCache[id]);
     positionIcons(domCache[id]);
   }
@@ -1400,7 +1434,7 @@ if (messagesViewport) {
       tooltipPressTimer = null;
     }
 
-    //  pressStartBadge = null;
+    pressStartBadge = null;
 
     try { hideReactionTooltip(); } catch (e) {}
     try { hideReactionPicker(); } catch (e) {}
@@ -1481,6 +1515,7 @@ function attachLongPress(msgEl) {
 function enableSwipeToReply(msgEl) {
   let startX = 0;
   let swiping = false;
+  const isMine = msgEl.classList.contains("me");
 
   msgEl.addEventListener("touchstart", e => {
     startX = e.touches[0].clientX;
@@ -1489,14 +1524,31 @@ function enableSwipeToReply(msgEl) {
 
   msgEl.addEventListener("touchmove", e => {
     if (!swiping) return;
+
     const deltaX = e.touches[0].clientX - startX;
-    if (deltaX > 40) {
+    if (Math.abs(deltaX) < 80) {
+      msgEl.style.transform = `translateX(${deltaX}px)`;
+    }
+
+    if (!isMine && deltaX > 40) {
       swiping = false;
-      startReply(msgEl);
+      triggerReplySwipe(msgEl, deltaX);
+      return;
+    }
+
+    if (isMine && deltaX < -40) {
+      swiping = false;
+      triggerReplySwipe(msgEl, deltaX);
+      return;
     }
   });
 
-  msgEl.addEventListener("touchend", () => { swiping = false; });
+  msgEl.addEventListener("touchend", () => {
+    msgEl.style.transform = "";
+    msgEl.style.transition = "transform 0.15s ease";
+    setTimeout(() => msgEl.style.transition = "", 150);
+    swiping = false;
+  });
 }
 
 document.addEventListener("DOMContentLoaded", chatSideBar);
