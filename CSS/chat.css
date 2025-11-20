@@ -231,6 +231,7 @@ html, body {
   padding: 14px;
   padding-bottom: 10px;
   position: relative;
+  min-height: 0;
 }
 
 #messages {
@@ -489,9 +490,10 @@ html, body {
   background: #1c1c1c;
   border-top: 1px solid #333;
   border-radius: 10px;
-  position: sticky;
+  position: relative;
   bottom: 0;
-  z-index: 50;
+  z-index: 10;
+  transition: transform 0.20s ease;
 }
 
 .input-bar textarea {
