@@ -1527,13 +1527,13 @@ function enableSwipeToReply(msgEl) {
 
     const deltaX = e.touches[0].clientX - startX;
 
-    if (!isMine && deltaX > 40) {
+    if (!isMine && deltaX > 60) {
       swiping = false;
       triggerReplySwipe(msgEl, deltaX);
       return;
     }
 
-    if (isMine && deltaX < -40) {
+    if (isMine && deltaX < -60) {
       swiping = false;
       triggerReplySwipe(msgEl, deltaX);
       return;
