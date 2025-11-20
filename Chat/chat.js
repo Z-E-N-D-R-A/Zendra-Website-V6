@@ -1419,27 +1419,31 @@ if (picker) {
 /* ================= EVENT HANDLERS ================= */
 let GLOBAL_LAST_POINTER_TARGET = null;
 
-const HEADER_HEIGHT = 65;
+const HEADER = 65;
+const INPUT = 55;
+
+const chatWrapper = document.querySelector("#chat-wrapper");
+const inputBar = document.querySelector("#input-bar");
+
 if (window.visualViewport) {
-  const inputBar = document.querySelector(".input-bar");
-  const chatWrapper = document.querySelector(".chat-wrapper");
-
   visualViewport.addEventListener("resize", () => {
-    const viewportHeight = visualViewport.height;
-    const fullHeight = window.innerHeight;
+    const vh = visualViewport.height;
+    const full = window.innerHeight;
 
-    const keyboardHeight = fullHeight - viewportHeight;
+    const keyboard = full - vh;
 
-    if (keyboardHeight > 150) {
-      // Keyboard OPEN
-      inputBar.style.transform = `translateY(-${keyboardHeight}px)`;
+    if (keyboard > 100) {
+      // keyboard opened
+      inputBar.style.transform = `translateY(-${keyboard}px)`;
 
-      // Chat wrapper shrinks but respects header height
-      chatWrapper.style.height = `calc(${viewportHeight}px - ${HEADER_HEIGHT}px)`;
+      chatWrapper.style.height =
+        `calc(${vh}px - ${HEADER}px - ${INPUT}px)`;
+
     } else {
-      // Keyboard CLOSED
+      // keyboard closed
       inputBar.style.transform = "translateY(0)";
-      chatWrapper.style.height = `calc(100dvh - ${HEADER_HEIGHT}px)`;
+      chatWrapper.style.height =
+        `calc(100dvh - ${HEADER}px - ${INPUT}px)`;
     }
   });
 }
