@@ -1418,6 +1418,29 @@ if (picker) {
 
 /* ================= EVENT HANDLERS ================= */
 let GLOBAL_LAST_POINTER_TARGET = null;
+
+if (window.visualViewport) {
+  const inputBar = document.querySelector(".input-bar");
+  const chatWrapper = document.querySelector(".chat-wrapper");
+
+  visualViewport.addEventListener("resize", () => {
+    const viewportHeight = visualViewport.height;
+    const fullHeight = window.innerHeight;
+
+    const keyboardHeight = fullHeight - viewportHeight;
+
+    if (keyboardHeight > 150) {
+      // Keyboard is OPEN
+      inputBar.style.transform = `translateY(-${keyboardHeight}px)`;
+      chatWrapper.style.height = `${viewportHeight}px`;
+    } else {
+      // Keyboard is CLOSED
+      inputBar.style.transform = "translateY(0)";
+      chatWrapper.style.height = calc("100dvh" - "65px");
+    }
+  });
+}
+
 if (messagesViewport) {
   messagesViewport.addEventListener("scroll", () => {
     const nearBottom = messagesViewport.scrollTop + messagesViewport.clientHeight >= messagesViewport.scrollHeight - 30;
@@ -1525,9 +1548,9 @@ function enableSwipeToReply(msgEl) {
   msgEl.addEventListener("touchmove", e => {
     if (!swiping) return;
     const deltaX = e.touches[0].clientX - startX;
-if (Math.abs(deltaX) < 80) {
-  msgEl.style.transform = `translateX(${deltaX}px)`;
-}
+    if (Math.abs(deltaX) < 80) {
+      msgEl.style.transform = `translateX(${deltaX}px)`;
+    }
 
     if (!isMine && deltaX > 60) {
       swiping = false;
@@ -1543,11 +1566,11 @@ if (Math.abs(deltaX) < 80) {
   });
 
   msgEl.addEventListener("touchend", () => {
-  msgEl.style.transform = "";
-  msgEl.style.transition = "transform 0.15s ease";
-  setTimeout(() => msgEl.style.transition = "", 150);
-  swiping = false;
-});
+    msgEl.style.transform = "";
+    msgEl.style.transition = "transform 0.15s ease";
+    setTimeout(() => msgEl.style.transition = "", 150);
+    swiping = false;
+  });
 }
 
 document.addEventListener("DOMContentLoaded", chatSideBar);
