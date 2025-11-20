@@ -9,17 +9,18 @@
 }
 
 *{box-sizing:border-box}
-html,body {
+html, body {
   margin: 0;
   background: linear-gradient(180deg, #05060a, #0f1115);
   font-family: Inter, system-ui, Arial;
-  color: #e6e6e6
+  color: #e6e6e6;
+  overflow: hidden;
 }
 
 .chat-wrapper {
   display: flex;
   width: 100%;
-  height: calc(100vh - 80px);
+  height: calc(100dvh - 65px);
   margin-top: 65px;
   overflow: hidden;
 }
@@ -33,13 +34,14 @@ html,body {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(0, 0, 0, 0.02));
   border-radius: 12px;
   padding: 12px;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   grid-column: 1 / span 1;
   min-height: 0;
   overflow-y: auto;
   min-width: 0;
   transition: width 0.3s ease;
+  height: 100%;
 }
 
 .btn {
@@ -227,6 +229,7 @@ html,body {
   flex: 1;
   overflow-y: auto;
   padding: 14px;
+  padding-bottom: 10px;
   position: relative;
 }
 
@@ -486,6 +489,9 @@ html,body {
   background: #1c1c1c;
   border-top: 1px solid #333;
   border-radius: 10px;
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
 }
 
 .input-bar textarea {
