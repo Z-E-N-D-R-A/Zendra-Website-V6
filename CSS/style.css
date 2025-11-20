@@ -61,6 +61,7 @@ header {
     background: rgba(0, 0, 0, 0);
     backdrop-filter: blur(0px);
     display: flex;
+    flex-shrink: 0;
     justify-content: space-between;
     align-items: center;
     z-index: 1000;
