@@ -70,7 +70,7 @@ html, body {
   border-left: 1px solid #333;
   overflow-y: auto;
   border-radius: 12px;
-  padding: 12px;
+  padding: 20px;
   transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 50;
 }
@@ -123,6 +123,80 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.sidebar-settings-btn {
+  padding: 14px 16px;
+  background: #1e1e1e;
+  border: none;
+  color: #eee;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+}
+
+.sidebar-settings-btn i {
+  font-size: 20px;
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.60);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(4px);
+  opacity: 1;
+  transition: opacity .25s ease;
+}
+
+.settings-modal.hidden {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.settings-modal-content {
+  width: 88%;
+  max-width: 350px;
+  background: #181a1f;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  animation: popIn .25s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #333;
+  color: #ddd;
+}
+
+.close-settings-btn {
+  margin-top: 18px;
+  width: 100%;
+  padding: 12px;
+  background: #444;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.close-settings-btn:hover {
+  background: #555;
 }
 
 /* ---------- MESSAGES ---------- */
