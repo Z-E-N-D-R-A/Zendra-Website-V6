@@ -51,6 +51,11 @@
         <h2>Online Users</h2>
         <div id="onlineCount" class="online-count">0 online</div>
         <div id="who" class="who-list"></div>
+
+        <button id="sidebarSettingsBtn" class="sidebar-settings-btn">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </button>
       </div>
     </aside>
     <div id="sidebar-backdrop"></div>
@@ -123,6 +128,24 @@
         <button id="copyRecoveryBtn" style="padding:6px 10px; border-radius:6px; cursor:pointer;">Copy</button>
         <small style="color:#ccc; margin-left:8px;">Save this code to restore your identity later.</small>
       </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="settings-modal hidden">
+  <div class="settings-modal-content">
+    <h3>Settings</h3>
+
+    <label class="setting-item">
+      <span>Dark Mode</span>
+      <input type="checkbox" id="darkModeToggle">
+    </label>
+
+    <label class="setting-item">
+      <span>Show Timestamps</span>
+      <input type="checkbox" id="timestampToggle">
+    </label>
+
+    <button id="closeSettings" class="close-settings-btn">Close</button>
     </div>
   </div>
 
