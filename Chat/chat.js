@@ -135,10 +135,10 @@ let hasScrolledSinceTouch = false;
 let suppressNextActionMenu = false;
 let pressStartBadge = null;
 
-const typingRef = firebase.database().ref("typing");
+const typingRef = firebase.database().ref("users");
 typingRef.on("value", snap => {
-  const data = snap.val() || {};
-  updateTypingIndicator(data);
+  const typingStates = snap.val() || {};
+  updateTypingIndicator(typingStates);
 });
 
 function isMobile() {
@@ -689,21 +689,21 @@ function activateReplyJump(msgEl) {
 }
 
 function sendTypingStatus(isTyping) {
-  const ref = usersRef.child(accountId).child("typing");
+  const ref = firebase.database().ref("users/" + accountId + "/typing");
   ref.set({
     typing: isTyping,
     ts: Date.now()
   });
 }
 
-function updateTypingIndicator(allUsers) {
+function updateTypingIndicator(typingStates) {
   const el = document.getElementById("typingIndicator");
 
-  const typingUsers = Object.values(allUsers)
+  const typingUsers = Object.values(typingStates)
     .filter(u => u.typing && u.typing.typing)
     .filter(u => u.typing.ts > Date.now() - 4000)
     .filter(u => u.username !== displayName);
-
+  
   if (typingUsers.length === 0) {
     el.classList.remove("show");
     return;
@@ -750,9 +750,13 @@ document.getElementById("cancel-reply").onclick = () => {
 };
 
 /* ================= FIREBASE LISTENERS: initial load + live updates ================= */
+firebase.database().ref("users").on("value", snap => {
+  allUsers = snap.val() || {};
+  console.log("[USERS] Live update:", Object.keys(allUsers).length);
+});
+
 (async function initMessageLoading() {
-  const usersSnap = await firebase.database().ref("users").once("value");
-  const allUsers = usersSnap.val() || {};
+  await new Promise(res => setTimeout(res, 80));
   console.log("Cached user profiles:", Object.keys(allUsers).length);
 
   const snapshot = await messagesRef.orderByKey().limitToLast(150).once("value");
@@ -1716,7 +1720,6 @@ async function join(name, restoredInfo = null) {
   localStorage.setItem("z_name", displayName);
   if (promptEl) promptEl.style.display = "none";
 
-  const myColor = restoredInfo?.color || colors[Math.floor(Math.random() * colors.length)];
   try {
     await initPresence();
   } catch (err) {
@@ -1739,8 +1742,7 @@ async function join(name, restoredInfo = null) {
     for (const p of entries) {
       if (!p.accountId) continue;
 
-      const userSnap = await usersRef.child(p.accountId).once("value");
-      const user = userSnap.val() || {};
+      const user = allUsers[p.accountId] || {};
 
       const name = user.username || "Unknown";
       const icon = user.profileIcon || "default";
@@ -1792,6 +1794,7 @@ async function join(name, restoredInfo = null) {
       await userRef.set(payload);
       await firebase.database().ref("recoveryIndex").child(code).set(accountId);
       localStorage.setItem("z_recovery", JSON.stringify({ code, payload }));
+      location.reload();
     } else {
       console.warn("[JOIN] expected restoredInfo but user package is missing; restoredInfo:", restoredInfo);
     }
