@@ -117,9 +117,6 @@ const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 const picker = document.getElementById("reaction-picker");
 const tooltip = document.getElementById("reaction-tooltip");
 
-const deletedMessages = new Set();
-
-let allUsers = {};
 let replyToId = null;
 let pickerTarget = null;
 let currentMobileMsg = null;
@@ -134,6 +131,11 @@ let userIsAtBottom = true;
 let hasScrolledSinceTouch = false;
 let suppressNextActionMenu = false;
 let pressStartBadge = null;
+
+let allUsers = {};
+firebase.database().ref("users").on("value", snap => {
+  allUsers = snap.val() || {};
+});
 
 const typingRef = firebase.database().ref("users");
 typingRef.on("value", snap => {
@@ -750,11 +752,6 @@ document.getElementById("cancel-reply").onclick = () => {
 };
 
 /* ================= FIREBASE LISTENERS: initial load + live updates ================= */
-firebase.database().ref("users").on("value", snap => {
-  allUsers = snap.val() || {};
-  console.log("[USERS] Live update:", Object.keys(allUsers).length);
-});
-
 (async function initMessageLoading() {
   await new Promise(res => setTimeout(res, 80));
   console.log("Cached user profiles:", Object.keys(allUsers).length);
@@ -859,8 +856,6 @@ messagesRef.on("child_changed", snap => {
 
 messagesRef.on("child_removed", snap => {
   const id = snap.key;
-  deletedMessages.add(id);
-
   const el = domCache[id];
   if (!el) return;
 
@@ -1692,11 +1687,6 @@ window.addEventListener('resize', () => {
 /* ================= PRESENCE / RECOVERY ================= */
 let myPresenceRef = null;
 
-joinBtn && (joinBtn.onclick = () => {
-  const n = promptName.value || displayName || "Guest";
-  join(n);
-});
-
 async function join(name, restoredInfo = null) {
   if (!authReady || !user) {
     pendingJoin = { name, restoredInfo };
@@ -1794,7 +1784,6 @@ async function join(name, restoredInfo = null) {
       await userRef.set(payload);
       await firebase.database().ref("recoveryIndex").child(code).set(accountId);
       localStorage.setItem("z_recovery", JSON.stringify({ code, payload }));
-      location.reload();
     } else {
       console.warn("[JOIN] expected restoredInfo but user package is missing; restoredInfo:", restoredInfo);
     }
@@ -1804,33 +1793,6 @@ async function join(name, restoredInfo = null) {
 
   await usersRef.child(accountId).update({ lastActive: Date.now() });
   console.log("[JOIN] complete — accountId active:", accountId);
-}
-
-function initPresence() {
-  try {
-    myPresenceRef = presenceRef.push();
-    myPresenceRef.onDisconnect().remove();
-
-    return myPresenceRef
-      .set({
-        accountId,
-        ts: Date.now()
-      })
-      .catch(err => {
-        console.error("[PRESENCE] presence set error:", err);
-        throw err;
-      });
-  } catch (err) {
-    console.error("[PRESENCE] initPresence exception:", err);
-    throw err;
-  }
-}
-
-function generateRecoveryCode(len = 8) {
-  const CH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < len; i++) out += CH[Math.floor(Math.random() * CH.length)];
-  return out;
 }
 
 async function restoreWithCode(code) {
@@ -1883,6 +1845,45 @@ async function restoreWithCode(code) {
     console.error("[RESTORE] restoreWithCode ERROR:", err);
   }
 }
+
+function initPresence() {
+  try {
+    myPresenceRef = presenceRef.push();
+    myPresenceRef.onDisconnect().remove();
+
+    return myPresenceRef
+      .set({ accountId, ts: Date.now() })
+      .then(() => { startPeriodicPresence(); })
+      .catch(err => { console.error("[PRESENCE] presence set error:", err);
+        throw err;
+      });
+  } catch (err) {
+    console.error("[PRESENCE] initPresence exception:", err);
+    throw err;
+  }
+}
+
+function startPeriodicPresence() {
+  if (!myPresenceRef) return;
+
+  setInterval(() => {
+    myPresenceRef.update({ ts: Date.now() }).catch(err => {
+      console.error("[PRESENCE] Periodic update failed:", err);
+    });
+  }, 30000);
+}
+
+function generateRecoveryCode(len = 8) {
+  const CH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += CH[Math.floor(Math.random() * CH.length)];
+  return out;
+}
+
+joinBtn && (joinBtn.onclick = () => {
+  const n = promptName.value || displayName || "Guest";
+  join(n);
+});
 
 if (restoreBtn) {
   restoreBtn.onclick = () => {
