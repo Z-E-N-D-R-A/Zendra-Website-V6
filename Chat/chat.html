@@ -65,7 +65,6 @@
       <div class="messages-scroll">
         <button id="loadOlderBtn" class="load-more">Load older messages</button>
         <div id="loadingOlder" class="loading-indicator">Loading…</div>
-        <!-- <div id="messages-staging" style="display:none;"></div> -->
         <div id="messages"></div>
       </div>
     
@@ -85,7 +84,7 @@
     
       <div class="input-bar">
         <textarea id="messageInput" contenteditable="true" placeholder="Type a message…"></textarea>
-        <button id="sendBtn">Send</button>
+        <button id="sendBtn"><div class="fa-solid fas fa-paper-plane"></div> Send</button>
       </div>
     </main>
   </div>
@@ -151,14 +150,15 @@
   </div>
 
   <div id="reaction-picker" class="reaction-picker">
-    <span class="react">👍</span>
     <span class="react">❤️</span>
+    <span class="react">💀</span>
+    <span class="react">😭</span>
     <span class="react">😂</span>
-    <span class="react">😮</span>
-    <span class="react">😢</span>
-    <span class="react">😡</span>
+    <span class="react">👍</span>
+    <span class="react">🔥</span>
   </div>
   <div id="reaction-tooltip" class="reaction-tooltip hidden"></div>
+  <div id="badge-tooltip" class="tooltip hidden"></div>
 
   <script src="chat.js"></script>
   <script>
