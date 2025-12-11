@@ -115,6 +115,7 @@ const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 
 const picker = document.getElementById("reaction-picker");
 const tooltip = document.getElementById("reaction-tooltip");
+const badgeTooltip = document.getElementById("badge-tooltip");
 
 let replyToId = null;
 let pickerTarget = null;
@@ -124,6 +125,7 @@ let pressTimer = null;
 let resizeTimer = null;
 let regroupTimer = null;
 let tooltipTimer = null;
+let badgeTooltipTimer = null;
 let tooltipPressTimer = null;
 
 let userIsAtBottom = true;
@@ -193,6 +195,10 @@ function formatDateLabel(ts) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function formatBadgeName(name) {
+  return name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) + " Badge";
+}
+
 function createDateSeparator(label) {
   const sep = document.createElement("div");
   sep.className = "date-separator";
@@ -242,7 +248,7 @@ function ensureDateSeparatorBefore(msgEl, timestamp) {
 
 /* ================= RENDER HELPERS ================= */
 function createMessageElement(data) {
-  const { id, name, text, time, senderId, color, edited } = data;
+  const { id, name, text, time, senderId, edited } = data;
   const isMe = senderId === accountId;
 
   const el = document.createElement("div");
@@ -253,9 +259,10 @@ function createMessageElement(data) {
   el.innerHTML = `
     <div class="meta">
       <strong>${escapeHtml(name || "Guest")}</strong>
+      <div class="badges"></div>
     </div>
-
-    <div class="side-dot" style="background:${color || "#888"}"></div>
+    
+    <img src="../Assets/${data.icon}.png" class="profile-icon" />
 
     <div class="bubble">
       ${renderReplyPreview(data)}
@@ -293,10 +300,26 @@ function createMessageElement(data) {
       </button>
     </div>`;
 
-  requestAnimationFrame(() => {
-    const bubble = el.querySelector(".bubble");
-    adjustBubbleAlignment(bubble);
-  });
+  if (data.badges && typeof data.badges === "object") {
+    const badgeContainer = el.querySelector(".badges");
+
+    Object.entries(data.badges).forEach(([badgeName, state]) => {
+      if (state === true) {
+        const img = document.createElement("img");
+        img.className = "badge-icon";
+        img.src = `../Assets/${badgeName}.png`;
+        img.dataset.badge = badgeName;
+        badgeContainer.appendChild(img);
+      }
+    });
+  }
+
+  const meta = el.querySelector(".meta");
+  if (isMe) {
+    meta.insertBefore(meta.querySelector(".badges"), meta.querySelector("strong"));
+  } else {
+    meta.appendChild(meta.querySelector(".badges"));
+  }
 
   renderReactions(el, data);
   attachActionHandlers(el, id, data);
@@ -304,8 +327,10 @@ function createMessageElement(data) {
   attachLongPress(el);
   enableSwipeToReply(el);
 
+  requestAnimationFrame(() => { adjustBubbleAlignment(el.querySelector(".bubble")) });
   requestAnimationFrame(() => positionActions(el));
   requestAnimationFrame(() => positionIcons(el));
+
   return el;
 }
 
@@ -338,7 +363,6 @@ function updateMessageElement(data) {
   }
 
   adjustBubbleAlignment(bubble);
-
   positionActions(el);
   positionIcons(el);
 }
@@ -363,41 +387,9 @@ function appendMessage(data) {
     return x;
   })();
 
-  if (prev && prev.dataset && prev.dataset.id) {
-    const prevId = prev.dataset.id;
-    const prevData = messages[prevId];
-
-    if (isSameGroup(prevData, data)) {
-      hideMeta(prev);
-      hideTime(prev);
-      hideSideDot(prev);
-
-      hideMeta(el);
-      showTime(el);
-      showSideDot(el);
-      el.classList.add("grouped");
-    } else {
-      showMeta(el);
-      const nextIsSameGroup = prev && isSameGroup(prevData, data);
-
-      if (nextIsSameGroup) {
-        hideTime(el);
-        hideSideDot(el);
-      } else {
-        showTime(el);
-        showSideDot(el);
-      }
-      el.classList.add("first-in-group");
-    }
-  } else {
-    showMeta(el);
-    showTime(el);
-    showSideDot(el);
-    el.classList.add("first-in-group");
-  }
-
   insertMessage(el, data.time);
   ensureDateSeparatorBefore(el, data.time);
+  regroupMessages();
 
   activateReplyJump(el);
   refreshAllReplyPreviews();
@@ -430,6 +422,7 @@ function prependMessage(data) {
 
   messagesEl.insertBefore(el, messagesEl.firstChild);
   ensureDateSeparatorBefore(el, data.time);
+  regroupMessages();
 
   domCache[id] = el;
   attachActionHandlers(el, id, data);
@@ -437,39 +430,6 @@ function prependMessage(data) {
   let next = el.nextElementSibling;
   while (next && next.classList.contains("date-separator")) next = next.nextElementSibling;
 
-  if (next && next.dataset && next.dataset.id) {
-    const nextId = next.dataset.id;
-    const nextData = messages[nextId];
-
-    if (isSameGroup(data, nextData)) {
-      showMeta(el);
-      hideTime(el);
-      hideSideDot(el);
-
-      hideMeta(next);
-      hideTime(next);
-      hideSideDot(next);
-      el.classList.add("first-in-group");
-      next.classList.add("grouped");
-    } else {
-      el.classList.add("first-in-group");
-      showMeta(el);
-      const sameGroup = isSameGroup(data, nextData);
-      if (sameGroup) {
-        hideTime(el);
-        hideSideDot(el);
-      } else {
-        showTime(el);
-        showSideDot(el);
-      }
-    }
-  }
-  else {
-    el.classList.add("first-in-group");
-    showMeta(el);
-    showTime(el);
-    showSideDot(el);
-  }
   return el;
 }
 
@@ -769,8 +729,9 @@ document.getElementById("cancel-reply").onclick = () => {
 
     appendMessage({
       ...msg,
-      name: info.username || "Unknown",
-      icon: info.profileIcon || "default.png"
+      name: info.username || "Unknown User",
+      icon: info.profileIcon || "default",
+      badges: info.badges || {}
     });
   }
 
@@ -793,8 +754,9 @@ document.getElementById("cancel-reply").onclick = () => {
     appendMessage({
       ...msg,
       id,
-      name: info.username || "Unknown",
-      icon: info.profileIcon || "default.png"
+      name: info.username || "Unknown User",
+      icon: info.profileIcon || "default",
+      badges: info.badges || {}
     });
 
     const box = messagesViewport;
@@ -806,39 +768,6 @@ document.getElementById("cancel-reply").onclick = () => {
     if (!isNearBottom && !isMe) showNewMsgIndicator();
   });
 })();
-
-/* messagesRef.orderByKey().limitToLast(150).on("child_added", async snap => {
-  const msg = snap.val();
-  const id = snap.key;
-  
-  const userSnap = await firebase.database().ref("users/" + msg.senderId).once("value");
-  const userInfo = userSnap.val() || {};
-
-  if (domCache[id]) return;
-  if (deletedMessages.has(id)) return;
-  if (!oldestLoadedKey) oldestLoadedKey = id;
-
-  const fullMsg = {
-    ...msg,
-    id,
-    senderId: msg.senderId,
-    name: userInfo.username || "Unknown",
-    icon: userInfo.profileIcon || "default.png"
-  };
-
-  messages[id] = fullMsg;
-  appendMessage(fullMsg);
-
-  const isMe = msg.senderId === accountId;
-  updateLoadOlderVisibility();
-  if (!userIsAtBottom && !isMe) showNewMsgIndicator();
-
-  let initialLoadDone = false;
-  messagesRef.limitToLast(150).once("value", () => {
-    initialLoadDone = true;
-    setTimeout(refreshAllReplyPreviews, 50);
-  });
-}); */
 
 messagesRef.on("child_changed", snap => {
   const msg = snap.val();
@@ -913,6 +842,7 @@ async function loadOlderMessages() {
   if (isLoadingMore || !oldestLoadedKey) return;
   if (messagesViewport) messagesViewport.scrollTop = 0;
   isLoadingMore = true;
+
   if (loadOlderBtn) loadOlderBtn.style.display = "none";
   if (spinner) spinner.style.display = "block";
 
@@ -962,15 +892,12 @@ function updateLoadOlderVisibility() {
 }
 
 /* ================= GROUPING & ALIGNMENTS ================= */
-function updateAllBubbleAlignments() {
-  document.querySelectorAll(".bubble").forEach(b => adjustBubbleAlignment(b));
-}
-
 function adjustBubbleAlignment(bubbleEl) {
   if (!bubbleEl) return;
   try {
     const range = document.createRange();
     range.selectNodeContents(bubbleEl);
+
     const rects = range.getClientRects();
     const lines = rects.length || 1;
 
@@ -981,17 +908,29 @@ function adjustBubbleAlignment(bubbleEl) {
   }
 }
 
+function updateAllBubbleAlignments() {
+  document.querySelectorAll(".bubble").forEach(b => adjustBubbleAlignment(b));
+}
+
 function positionIcons(msgEl) {
   const bubble = msgEl.querySelector(".bubble");
-  const sideDot = msgEl.querySelector(".side-dot");
-  if (!bubble || !sideDot) return;
+  const profileIcon = msgEl.querySelector(".profile-icon");
+  if (!bubble || !profileIcon) return;
 
   const bubbleRect = bubble.getBoundingClientRect();
   const msgRect = msgEl.getBoundingClientRect();
   const centerY = bubbleRect.top + bubbleRect.height / 2 - msgRect.top;
 
-  sideDot.style.top = centerY + "px";
-  sideDot.style.transform = "translateY(-50%)";
+  profileIcon.style.top = centerY + "px";
+  profileIcon.style.transform = "translateY(-50%)";
+
+  if (msgEl.classList.contains("me")) {
+    profileIcon.style.right = -25 + "px";
+    profileIcon.style.left = "auto";
+  } else {
+    profileIcon.style.left = -25 + "px";
+    profileIcon.style.right = "auto";
+  }
 }
 
 function positionActions(msgEl) {
@@ -1008,10 +947,10 @@ function positionActions(msgEl) {
 
   const bubbleWidth = bubble.offsetWidth;
   if (msgEl.classList.contains("me")) {
-    actions.style.right = (bubbleWidth + 10) + "px";
+    actions.style.right = (bubbleWidth + 15) + "px";
     actions.style.left = "auto";
   } else {
-    actions.style.left = (bubbleWidth + 10) + "px";
+    actions.style.left = (bubbleWidth + 15) + "px";
     actions.style.right = "auto";
   }
 }
@@ -1038,12 +977,12 @@ function showTime(el) {
   const t = el.querySelector(".time");
   if (t) t.classList.remove("hidden");
 }
-function hideSideDot(el) {
-  const d = el.querySelector(".side-dot");
+function hideIcon(el) {
+  const d = el.querySelector(".profile-icon");
   if (d) d.classList.add("hidden");
 }
-function showSideDot(el) {
-  const d = el.querySelector(".side-dot");
+function showIcon(el) {
+  const d = el.querySelector(".profile-icon");
   if (d) d.classList.remove("hidden");
 }
 
@@ -1057,6 +996,7 @@ function scheduleRegroup() {
 
 function regroupMessages() {
   const all = [...messagesViewport.querySelectorAll(".msg")];
+
   for (let i = 0; i < all.length; i++) {
     const cur = all[i];
     const prev = all[i - 1] || null;
@@ -1066,34 +1006,52 @@ function regroupMessages() {
     const prevMsg = prev ? messages[prev.dataset.id] : null;
     const nextMsg = next ? messages[next.dataset.id] : null;
 
-    cur.classList.remove("first-in-group", "grouped", "last-in-group");
     const sameAsPrev = prevMsg && isSameGroup(prevMsg, curMsg);
     const sameAsNext = nextMsg && isSameGroup(curMsg, nextMsg);
 
-    if (!sameAsPrev) {
-      cur.classList.add("first-in-group");
+    cur.classList.remove("first-in-group", "grouped", "last-in-group");
+
+    // CASE 1: NOT grouped at all → show all
+    if (!sameAsPrev && !sameAsNext) {
+      cur.classList.add("single");
       showMeta(cur);
-      hideSideDot(cur);
-      hideTime(cur);
-    } else {
-      cur.classList.add("grouped");
-      hideMeta(cur);
+      showIcon(cur);
+      showTime(cur);
+      continue;
     }
 
-    if (!sameAsNext) {
-      cur.classList.add("last-in-group");
-      showTime(cur);
-      showSideDot(cur);
-    } else {
+    // CASE 2: FIRST in group → meta ONLY
+    if (!sameAsPrev && sameAsNext) {
+      cur.classList.add("first-in-group");
+      showMeta(cur);
+      hideIcon(cur);
       hideTime(cur);
-      hideSideDot(cur);
+      continue;
+    }
+
+    // CASE 3: MIDDLE in group → hide everything
+    if (sameAsPrev && sameAsNext) {
+      cur.classList.add("grouped");
+      hideMeta(cur);
+      hideIcon(cur);
+      hideTime(cur);
+      continue;
+    }
+
+    // CASE 4: LAST in group → icon + time only
+    if (sameAsPrev && !sameAsNext) {
+      cur.classList.add("last-in-group");
+      hideMeta(cur);
+      showIcon(cur);
+      showTime(cur);
+      continue;
     }
   }
 
   requestAnimationFrame(() => {
-    for (let msg of all) {
-      positionActions(msg);
-      positionIcons(msg);
+    for (let el of all) {
+      positionActions(el);
+      positionIcons(el);
     }
   });
 }
@@ -1200,13 +1158,6 @@ function closeAllMenus({ except = null } = {}) {
   });
 }
 
-/* document.addEventListener("click", (e) => {
-  const clickedMenuBtn = e.target.closest(".menu-btn");
-  const clickedMenu = e.target.closest(".action-menu");
-  if (clickedMenuBtn || clickedMenu) return;
-  closeAllMenus();
-}); */
-
 function handleMobileAction(action, msgEl) {
   const id = msgEl.dataset.id;
   const msgData = messages[id];
@@ -1267,9 +1218,8 @@ function closeMobileSheet() {
 
 document.querySelectorAll(".sheet-option").forEach(opt => {
   opt.addEventListener("click", () => {
-    const action = opt.dataset.action;
     if (currentMobileMsg) {
-      handleMobileAction(action, currentMobileMsg);
+      handleMobileAction(opt.dataset.action, currentMobileMsg);
     }
   });
 });
@@ -1327,9 +1277,6 @@ function openReactionPicker(msgEl) {
   picker.style.left = `${Math.round(left)}px`;
   picker.style.top = `${Math.round(top)}px`;
 
-  picker.classList.add("just-opened");
-  setTimeout(() => picker.classList.remove("just-opened"), 50);
-
   requestAnimationFrame(() => {
     picker.style.visibility = "visible";
     picker.style.pointerEvents = "auto";
@@ -1373,21 +1320,45 @@ function showReactionTooltip(badge, msgData, emoji) {
   if (!usersObj) return;
 
   const usernames = Object.keys(usersObj)
-    .map(uid => allUsers?.[uid]?.name || "Unknown User");
-  tooltip.textContent = usernames.join(", ");
+    .map(uid => {
+      const name = allUsers?.[uid]?.username || "Unknown User";
+      return `<b>${name}</b>`;
+    })
+    .sort((a, b) => {
+      const aa = a.replace(/<\/?b>/g, "");
+      const bb = b.replace(/<\/?b>/g, "");
+      return aa.localeCompare(bb);
+    });
 
-  const msgEl = findMsgElForBadge(badge);
-  const rect = msgEl.getBoundingClientRect();
-  tooltip.classList.remove("hidden");
-  tooltip.style.maxWidth = "200px";
+  tooltip.innerHTML = "Reacted by " + usernames.join(", ");
+
+  tooltip.style.visibility = "hidden";
+  tooltip.style.opacity = "0";
+  tooltip.style.display = "block";
+
+  // tooltip.style.left = "-9999px";
+  // tooltip.style.top = "-9999px";
 
   const tipRect = tooltip.getBoundingClientRect();
-  const top = rect.top - tipRect.height - 8;
-  const left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-  tooltip.style.top = Math.max(6, top) + "px";
-  tooltip.style.left = Math.max(6, Math.min(left, window.innerWidth - tipRect.width - 6)) + "px";
+  const badgeRect = badge.getBoundingClientRect();
 
-  requestAnimationFrame(() => tooltip.classList.add("show"));
+  const msgEl = findMsgElForBadge(badge);
+  const isMe = msgEl && msgEl.classList.contains("me");
+
+  let top = badgeRect.top - tipRect.height;
+  let left = isMe ? badgeRect.right - tipRect.width : badgeRect.left;
+
+  left = Math.max(6, Math.min(left, window.innerWidth - tipRect.width - 6));
+  top = Math.max(6, Math.min(top, window.innerHeight - tipRect.height - 6));
+
+  tooltip.style.left = Math.round(left) + "px";
+  tooltip.style.top = Math.round(top) + "px";
+
+  requestAnimationFrame(() => {
+    tooltip.style.visibility = "visible";
+    tooltip.style.opacity = "";
+    tooltip.classList.add("show");
+  });
 }
 
 function hideReactionTooltip() {
@@ -1395,7 +1366,8 @@ function hideReactionTooltip() {
   tooltip.classList.remove("show");
   setTimeout(() => {
     if (!tooltip.classList.contains("show")) {
-      tooltip.classList.add("hidden");
+      tooltip.style.visibility = "hidden";
+      tooltip.style.opacity = "0";
     }
   }, 150);
 }
@@ -1464,21 +1436,7 @@ document.addEventListener('pointerup', (ev) => {
   badgePress.badge = null;
 });
 
-/* document.addEventListener("click", (e) => {
-  if (!picker) return;
-  if (picker.contains(e.target)) return;
-  if (e.target.closest(".action-menu, .menu-btn, .action-btn, .reply-btn")) return;
-  if (picker.classList.contains("just-opened")) {
-    picker.classList.remove("just-opened");
-    return;
-  }
-  hideReactionPicker();
-}); */
-
-window.addEventListener('scroll', () => {
-  // lastScrollTime = Date.now();
-  hideReactionTooltip();
-}, { passive: true });
+window.addEventListener('scroll', () => { hideReactionTooltip() }, { passive: true });
 
 if (picker) {
   picker.querySelectorAll(".react").forEach(el => {
@@ -1490,6 +1448,91 @@ if (picker) {
     };
   });
 }
+
+/* ================= BADGE TOOLTIP HANDLERS ================= */
+function showBadgeTooltip(badge, badgeName) {
+  badgeTooltip.innerHTML = formatBadgeName(badgeName);
+
+  badgeTooltip.style.visibility = "hidden";
+  badgeTooltip.style.opacity = "0";
+  badgeTooltip.style.display = "block";
+
+  const tipRect = badgeTooltip.getBoundingClientRect();
+  const badgeRect = badge.getBoundingClientRect();
+
+  let top = badgeRect.top - tipRect.height;
+  let left = badgeRect.left;
+
+  left = Math.max(6, Math.min(left, window.innerWidth - tipRect.width - 6));
+  top = Math.max(6, Math.min(top, window.innerHeight - tipRect.height - 6));
+
+  badgeTooltip.style.left = Math.round(left) + "px";
+  badgeTooltip.style.top = Math.round(top) + "px";
+
+  requestAnimationFrame(() => {
+    badgeTooltip.style.visibility = "visible";
+    badgeTooltip.style.opacity = "";
+    badgeTooltip.classList.add("show");
+  });
+}
+
+function hideBadgeTooltip() {
+  if (!badgeTooltip) return;
+  badgeTooltip.classList.remove("show");
+  setTimeout(() => {
+    if (!badgeTooltip.classList.contains("show")) {
+      badgeTooltip.style.visibility = "hidden";
+      badgeTooltip.style.opacity = "0";
+    }
+  }, 150);
+}
+
+document.addEventListener("mouseover", (e) => {
+  if (window.innerWidth <= 900) return;
+
+  const badge = e.target.closest(".badge-icon");
+  if (!badge) {
+    hideBadgeTooltip();
+    return;
+  }
+
+  const badgeName = badge.dataset.badge;
+  if (!badgeName) return;
+
+  clearTimeout(badgeTooltipTimer);
+  badgeTooltipTimer = setTimeout(() => {
+    showBadgeTooltip(badge, badgeName);
+  }, 250);
+});
+
+document.addEventListener("mouseout", (e) => {
+  if (!e.relatedTarget || !badgeTooltip.contains(e.relatedTarget)) {
+    hideBadgeTooltip();
+  }
+});
+
+document.addEventListener("pointerdown", (ev) => {
+  const badge = ev.target.closest('.badge-icon');
+  if (!badge || window.innerWidth > 900) return;
+
+  badgePress.badge = badge;
+  badgePress.long = false;
+  badgePress.startedAt = Date.now();
+
+  const badgeName = badge.dataset.badge;
+
+  badgePress.timer = setTimeout(() => {
+    badgePress.long = true;
+    showBadgeTooltip(badge, badgeName);
+  }, 450);
+}, { passive: true });
+
+document.addEventListener("pointerup", () => {
+  clearTimeout(badgePress.timer);
+  badgePress.badge = null;
+});
+
+window.addEventListener("scroll", hideBadgeTooltip, { passive: true });
 
 /* ================= EVENT HANDLERS ================= */
 let GLOBAL_LAST_POINTER_TARGET = null;
@@ -1700,9 +1743,6 @@ async function join(name, restoredInfo = null) {
   if (!accountId) {
     accountId = "u_" + Math.random().toString(36).slice(2);
     localStorage.setItem("z_accountId", accountId);
-    console.log("[JOIN] generated new accountId:", accountId + " (display name: " + displayName + ")");
-  } else {
-    console.log("[JOIN] using accountId:", accountId + " (display name: " + displayName + ")");
   }
 
   displayName = (name || "").trim() || "Guest";
@@ -1733,7 +1773,7 @@ async function join(name, restoredInfo = null) {
 
       const user = allUsers[p.accountId] || {};
 
-      const name = user.username || "Unknown";
+      const name = user.username || "Unknown User";
       const icon = user.profileIcon || "default";
 
       const el = document.createElement("div");
@@ -1880,7 +1920,7 @@ function recheckPresenceConnection() {
     if (snap.val() === true) {
       initPresence();
     } else {
-      console.log("[PRESENCE] Not connected → waiting for Firebase reconnect");
+      console.log("[PRESENCE] Not connected - waiting for Firebase reconnect");
     }
   });
 }
