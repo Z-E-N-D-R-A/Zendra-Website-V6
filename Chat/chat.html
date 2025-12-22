@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
   <title>Zentral-Web | Chat</title>
 
   <link href="../Assets/Icon.png" rel="icon">
@@ -46,11 +47,14 @@
     <button id="toggleSidebar" class="sidebar-toggle">
       <div class="fa-solid fas fa-grip-horizontal"></div>
     </button>
+
     <aside id="sidebar" class="sidebar">
-      <h2>Online Users</h2>
-      <div id="onlineCount" class="online-count">0 online</div>
-      <div id="presence"></div>
-      
+      <div class="sidebar-top">
+        <h2>Online Users</h2>
+        <div id="onlineCount" class="online-count">0 online</div>
+        <div id="presence" class="presence-list"></div>
+      </div>
+    
       <div class="sidebar-bottom">
         <div id="heat-container" class="heat-container">
           <div class="heat-bar">
@@ -58,13 +62,13 @@
           </div>
           <div id="heat-percent">0%</div>
         </div>
-      
+    
         <button id="sidebarSettingsBtn" class="sidebar-settings-btn">
           <i class="fa-solid fa-gear"></i>
           <span>Settings</span>
         </button>
       </div>
-      </aside>
+    </aside>
     <div id="backdrop" class="backdrop"></div>
 
     <main id="chat-area" class="chat-area">
@@ -75,7 +79,7 @@
       
       <div class="indicator-row" id="indicatorRow">
         <div id="typingIndicator" class="typing-indicator"></div>
-        <div id="warningIndicator" class="warning-indicator"></div>
+        <!-- <div id="warningIndicator" class="warning-indicator"></div> -->
         <div id="charLimitIndicator" class="char-limit-indicator"></div>
       </div>
 
@@ -93,11 +97,9 @@
           <div class="fa-solid fas fa-paper-plane"></div> Send
         </button>
       </div>
-      
-      <div id="keyboardSpacer"></div>
-      
+
       <div class="timeout-bar" id="timeoutBar" style="display:none;">
-        <span>⏳ You are timed out for <strong id="timeoutEnd"></strong></span>
+        <span class="timeout-text">⏳ You are timed out for <strong id="timeoutEnd"></strong></span>
       </div>
     </main>
   </div>
@@ -193,7 +195,7 @@
       <div class="setting-item theme-setting">
         <span>Chat Theme</span>
   
-        <div class="theme-carousel" id="theme-carousel">
+        <div class="theme-carousel">
           <button class="carousel-arrow left" id="themePrev">❮</button>
   
           <div class="theme-viewport">
