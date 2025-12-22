@@ -229,13 +229,9 @@ body {
   color: #fff;
 }
 
-.mod-action.censor {
-  background: #ff9800;
-}
-
-.mod-action.report {
-  background: #ff5252;
-}
+.mod-action.censor { background: #ff9800; }
+.mod-action.report { background: #ff5252; }
+.mod-action.spam { background: #256c09; }
 
 .mod-time {
   font-size: 12px;
