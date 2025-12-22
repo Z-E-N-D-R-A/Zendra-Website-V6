@@ -3068,28 +3068,30 @@ setInterval(() => {
 
 const spacer = document.getElementById("keyboardSpacer");
 const messagesScroll = document.querySelector(".messages-scroll");
+const chatArea = document.getElementById("chat-area");
 
 let lastViewportHeight = window.visualViewport?.height || window.innerHeight;
 
 function handleViewportResize() {
   if (!window.visualViewport) return;
 
-  const viewportHeight = window.visualViewport.height;
-  const keyboardHeight = Math.max(0, window.innerHeight - viewportHeight);
+  const viewport = window.visualViewport;
+  const keyboardHeight = Math.max(
+    0,
+    window.innerHeight - viewport.height - viewport.offsetTop
+  );
 
-  // Only apply if keyboard is likely open
   if (keyboardHeight > 100) {
-    spacer.classList.add("active");
-    spacer.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
+    // Move chat up instead of padding
+    chatArea.style.transform = `translateY(-${keyboardHeight}px)`;
 
-    // Keep messages visible
-    messagesScroll.scrollTop = messagesScroll.scrollHeight;
+    // Keep messages pinned to bottom
+    requestAnimationFrame(() => {
+      messagesScroll.scrollTop = messagesScroll.scrollHeight;
+    });
   } else {
-    spacer.classList.remove("active");
-    spacer.style.setProperty("--keyboard-height", `0px`);
+    chatArea.style.transform = "";
   }
-
-  lastViewportHeight = viewportHeight;
 }
 
 if (window.visualViewport) {
@@ -3100,4 +3102,41 @@ document.getElementById("messageInput").addEventListener("focus", () => {
   setTimeout(() => {
     messagesScroll.scrollTop = messagesScroll.scrollHeight;
   }, 50);
+});
+
+let scrollLockY = 0;
+
+function lockScroll() {
+  scrollLockY = window.scrollY;
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollLockY}px`;
+  document.body.style.width = "100%";
+}
+
+function unlockScroll() {
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.width = "";
+  window.scrollTo(0, scrollLockY);
+}
+
+const input = document.getElementById("messageInput");
+
+input.addEventListener("focus", () => {
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    lockScroll();
+  }
+});
+
+input.addEventListener("blur", () => {
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    unlockScroll();
+  }
+});
+
+input.addEventListener("focus", () => {
+  setTimeout(() => {
+    handleViewportResize();
+    messagesScroll.scrollTop = messagesScroll.scrollHeight;
+  }, 100);
 });
