@@ -26,6 +26,9 @@ html, body {
   font-family: Inter, system-ui, Arial;
   color: var(--text);
   overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chat-wrapper {
@@ -35,6 +38,12 @@ html, body {
   height: calc(100dvh - 65px);
   margin-top: 65px;
   overflow: hidden;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .chat-wrapper {
+    height: -webkit-fill-available;
+  }
 }
 
 .chat-area {
@@ -51,7 +60,8 @@ html, body {
   min-height: 0;
   overflow-y: auto;
   min-width: 0;
-  transition: width 0.3s ease;
+  transition: transform 0.25s ease;
+  will-change: transform;
   height: 100%;
 }
 
@@ -133,6 +143,7 @@ body.timed-out .backdrop {
 /* ---------- SIDEBAR ---------- */
 .sidebar {
   width: 260px;
+  height: 100%;
   right: 0;
   background: var(--sidebar);
   color: var(--text1);
