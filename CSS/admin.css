@@ -1,0 +1,259 @@
+body {
+    background: #0f1117;
+    color: #fff;
+    font-family: Inter, system-ui, Arial;
+    padding: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+/* ---------- USER LIST ---------- */
+#user-list {
+    margin-top: 16px;
+}
+
+.user-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1b1f2a;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.user-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-name {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.user-id {
+    font-size: 9.5px;
+    opacity: 0.6;
+}
+
+.user-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.status {
+    margin-left: 6px;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.status.banned {
+    background: #c0392b;
+    color: #fff;
+}
+
+.status.timeout {
+    background: #f39c12;
+    color: #000;
+}
+
+.btn {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn.timeout { background: #f36812; color: #fff; }
+.btn.ban { background: #8e44ad; color: #fff; }
+.btn.clear { background: #c0392b; color: #fff; }
+.btn.logout, .btn.resolve { background: #302bc0; color: #fff; }
+.btn.cleanup { background: #c02b35; color: #fff; font-size: 15px; }
+
+#timeout-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+#timeout-modal.hidden {
+  display: none;
+}
+
+.timeout-box {
+  background: #1b1f2a;
+  padding: 14px;
+  border-radius: 10px;
+  width: 280px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeout-box h3 {
+  margin: 4px 0px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.time-grid {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0px;
+}
+
+.time-grid input {
+  width: 100%;
+  max-width: 80px;
+  padding: 6px;
+  text-align: center;
+
+  background: #0f1117;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+}
+
+.timeout-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.timeout-actions button {
+  min-width: 80px;
+}
+
+/* ---------- MODERATION LIST ---------- */
+#moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moderation-row {
+  background: linear-gradient(135deg, #151515, #1f1f1f);
+  border-left: 4px solid #ff4d4d;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #eaeaea;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.mod-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mod-user {
+  font-weight: 600;
+  font-size: 14px;
+  color: #66aaff;
+  margin-bottom: 4px;
+}
+
+.mod-message {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  opacity: 0.95;
+  word-break: break-word;
+}
+
+.mod-message span {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  opacity: 0.9;
+}
+
+.mod-left {
+  flex: 1;
+}
+
+.mod-extra {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.mod-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 140px;
+}
+
+.mod-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.mod-action {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.mod-action.censor {
+  background: #ff9800;
+}
+
+.mod-action.report {
+  background: #ff5252;
+}
+
+.mod-time {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 8px;
+  white-space: nowrap;
+}
+
+/* ---------- CLEAN UP ---------- */
+.cleanup-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+    margin-top: 30px;
+    margin-bottom: 8px;
+}
+
+#cleanup-result {
+    text-align: center;
+}
