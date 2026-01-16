@@ -105,7 +105,7 @@
 
       async function updateYouTubeStats() {
         try {
-          const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${YCI}&key=${YAK}`);
+          const res = await fetch(`/api/yt-proxy?endpoint=channels&part=statistics&id=${YCI}`);
           const data = await res.json();
           if (!data.items || !data.items.length) {
             animateCount("ytCount", 1000);
@@ -127,8 +127,8 @@
         section.innerHTML = "";
 
         const [videoRes, playlistRes] = await Promise.all([
-          fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${YAK}`),
-          fetch(`https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&id=${playlistId}&key=${YAK}`)
+          fetch(`/api/yt-proxy?endpoint=videos&part=snippet,statistics&id=${videoId}`),
+          fetch(`/api/yt-proxy?endpoint=playlists&part=snippet,contentDetails&id=${playlistId}`)
         ]);
 
         const videoData = await videoRes.json();
@@ -202,7 +202,7 @@
           if (videosLoaded) return;
           videosLoaded = true;
 
-          const res = await fetch('/.netlify/functions/get-videos');
+          const res = await fetch(`/api/yt-proxy?endpoint=search&channelId=${YCI}&part=snippet,id&order=date&maxResults=${numVideos}`);
           const data = await res.json();
           if (!data.items || !data.items.length) {
             document.getElementById("videos-title").innerHTML = "Unable to load videos. Please try again later.";
@@ -216,7 +216,7 @@
           const videoItems = data.items.filter(i => i.id.kind === "youtube#video");
           const videoIds = videoItems.map(i => i.id.videoId).join(",");
 
-          const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${YAK}`);
+          const statsRes = await fetch(`/api/yt-proxy?endpoint=videos&part=statistics&id=${videoIds}`);
           const statsData = await statsRes.json();
           const statsMap = {};
           statsData.items.forEach(v => { statsMap[v.id] = v.statistics; });
