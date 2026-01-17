@@ -265,24 +265,24 @@ footer {
     font-size: 0.9rem;
 }
 
-.f-links-group {
+.footer-socials {
     margin-bottom: 25px;
 }
 
-.f-links-group a {
+.footer-socials a {
     color: white;
     font-size: 1.8rem;
     margin: 0 18px;
     transition: transform 0.3s ease, color 0.3s ease;
 }
 
-.f-links-group a:hover { transform: translateY(-6px); }
-.f-links-group a:hover .yt-hover { color: #ff0000; }
-.f-links-group a:hover .ig-hover { color: #bc1888; }
-.f-links-group a:hover .tk-hover { color: #00aba6; }
-.f-links-group a:hover .dc-hover { color: #5865f2; }
-.f-links-group a:hover .tw-hover { color: #9146ff; }
-.f-links-group a:hover .x-hover { color: #00bfff; }
+.footer-socials a:hover { transform: translateY(-6px); }
+.footer-socials a:hover .yt-hover { color: #ff0000; }
+.footer-socials a:hover .ig-hover { color: #bc1888; }
+.footer-socials a:hover .tk-hover { color: #00aba6; }
+.footer-socials a:hover .dc-hover { color: #5865f2; }
+.footer-socials a:hover .tw-hover { color: #9146ff; }
+.footer-socials a:hover .x-hover { color: #00bfff; }
 
 /* ---------- HOME PAGE ---------- */
 /* === Hero Section === */
