@@ -44,12 +44,15 @@ h1,h2 {
 }
 
 @font-face {
-  font-family: 'AubergaDemoRegular';
-  /* Replace with the actual path and name of your file */
-  src: url('../Assets/AubergaDemoReg.ttf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap; /* Recommended for 2026 to prevent invisible text during load */
+    font-family: 'AubergaDemoRegular';
+    src: url('../Assets/AubergaDemoReg.ttf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@media (max-width: 500px) {
+    .page-title { font-size: 30px; }
 }
 
 /* ---------- ANIMATIONS ---------- */
@@ -272,7 +275,7 @@ footer {
 .footer-socials a {
     color: white;
     font-size: 1.8rem;
-    margin: 0 18px;
+    margin: 10px;
     transition: transform 0.3s ease, color 0.3s ease;
 }
 
@@ -396,6 +399,7 @@ section.content img {
     border-radius: 20px;
     box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
     object-fit: cover;
+    overflow-x: hidden;
 }
 
 section.content h2 {
@@ -1173,11 +1177,11 @@ section.content h2 {
 /* === Calendar Section === */
 .calendar-section {
     text-align: center;
-    background: linear-gradient(180deg, #b2c652, #cc621b 50%);
+    background: linear-gradient(180deg, #97aa38, #cc621b 50%);
     color: white;
     overflow: hidden;
     min-height: 500px;
-    padding: 80px 10vw;
+    padding: 80px 5vw;
     position: relative;
 }
 
@@ -1262,8 +1266,8 @@ section.content h2 {
 
 .plan {
     margin-top: 6px;
-    background: linear-gradient(45deg, #f27a7c9c, #f7d4869c);
-    color: #fffedcb7;
+    background: linear-gradient(135deg, #ff52559c, #ffed239c);
+    color: #ffffffd6;
     font-size: 12px;
     padding: 6px 8px;
     border-radius: 10px;
@@ -1338,6 +1342,11 @@ section.content h2 {
 }
 
 @media (max-width: 768px) {
+    .calendar-section {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
     .calendar-day {
         min-height: 60px;
         padding: 8px;
@@ -1366,8 +1375,8 @@ section.content h2 {
     position: relative;
     padding-top: 40px;
     padding-bottom: 80px;
-    padding-left: 120px;
-    padding-right: 120px;
+    padding-left: 10vw;
+    padding-right: 10vw;
     background: linear-gradient(180deg, #cc621b, #671027, #0d0d0d);
     text-align: center;
     overflow: hidden;
@@ -1386,6 +1395,7 @@ section.content h2 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 50px;
+    justify-content: center;
 }
 
 .project-card {
@@ -1463,7 +1473,7 @@ section.content h2 {
 .search-banner {
     background: linear-gradient(0deg, #1A2980, #26D0CE);
     position: relative;
-    padding: 80px 10vw;
+    padding: 80px 5vw;
     text-align: center;
     color: white;
 }
@@ -1476,7 +1486,7 @@ section.content h2 {
     max-width: 800px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50px;
-    padding: 20px 20px;
+    padding: 20px 30px 20px 15px;
     backdrop-filter: blur(6px);
     z-index: 1;
 }
@@ -1526,8 +1536,8 @@ section.content h2 {
     position: relative;
     background: linear-gradient(0deg, #0d0d0d, #1A2980);
     padding-bottom: 80px;
-    padding-left: 120px;
-    padding-right: 120px;
+    padding-left: 10vw;
+    padding-right: 10vw;
     overflow: hidden;
 }
 
@@ -1703,6 +1713,7 @@ section.content h2 {
     color: #ccc;
     max-width: 600px;
     margin: auto;
+    padding: 0 15px;
     font-size: 16px;
 }
 

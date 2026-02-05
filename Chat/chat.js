@@ -255,6 +255,7 @@ firebase.auth().onAuthStateChanged(u => {
     accountId = savedAccountId;
   } else {
     accountId = user.uid;
+    console.log(user.uid);
     localStorage.setItem("z_accountId", accountId);
   }
 
@@ -332,6 +333,7 @@ const joinBtn = document.getElementById("prompt-join") || null;
 const promptErrorEl = document.getElementById("prompt-error");
 
 const messagesEl = document.getElementById("messages");
+const messagesScroll = document.querySelector(".messages-scroll");
 const messagesViewport = messagesEl.parentElement;
 const sendBtn = document.getElementById("sendBtn") || null;
 const newMsgIndicator = document.getElementById("newMsgIndicator") || null;
@@ -1171,6 +1173,7 @@ function sendMessage() {
       }
     }
 
+    updateCharLimitIndicator();
     return data;
   });
 }
@@ -1187,6 +1190,7 @@ function beginEditMessage(id) {
   messageInput.value = originalText;
   messageInput.focus();
   sendBtn.textContent = "Save Edit";
+  updateCharLimitIndicator();
 
   if (!document.getElementById("cancelEditBtn")) {
     const cancelBtn = document.createElement("button");
@@ -1207,8 +1211,8 @@ function finishEditMessage() {
   if (newText === originalText) return cancelEdit();
 
   const finalText = profanityFilter(newText, accountId);
-
   messagesRef.child(editingId).update({ text: finalText, edited: true }).catch(console.error);
+
   cancelEdit();
 }
 
@@ -1220,6 +1224,7 @@ function cancelEdit() {
   if (sendBtn) sendBtn.textContent = "Send";
   const cancelBtn = document.getElementById("cancelEditBtn");
   if (cancelBtn) cancelBtn.remove();
+  updateCharLimitIndicator();
 }
 
 function startReply(msgEl) {
@@ -1303,17 +1308,12 @@ function updateTypingIndicator(typingStates) {
   
   if (typingUsers.length === 0) {
     el.classList.remove("show");
-    return;
+  } else {
+    let text = typingUsers.length === 1  ? `${typingUsers[0].username} is typing` : `${typingUsers.length} people are typing`;
+    el.innerHTML = `<span>${text}</span><div class="typing-dots"><span></span><span></span><span></span></div>`;
+    el.classList.add("show");
   }
 
-  let text = "";
-  if (typingUsers.length === 1) text = `${typingUsers[0].username} is typing`;
-  else text = `${typingUsers.length} people are typing`;
-
-  el.innerHTML = `
-    <span>${text}</span>
-    <div class="typing-dots"><span></span><span></span><span></span></div>`;
-  el.classList.add("show");
   updateIndicatorRow();
 }
 
@@ -1323,30 +1323,26 @@ function updateCharLimitIndicator() {
 
   charLimitEl.classList.remove("show", "warn", "limit");
 
-  if (remaining <= CHAR_WARNING_AT && remaining > 0) {
-    charLimitEl.textContent = `${remaining} characters remaining`;
-    charLimitEl.classList.add("show", "warn");
-    updateIndicatorRow();
+  if (remaining <= CHAR_WARNING_AT) {
+    if (remaining <= 0) {
+      charLimitEl.textContent = `Character limit reached (${MESSAGE_CHAR_LIMIT})`;
+      charLimitEl.classList.add("limit");
+    } else {
+      charLimitEl.textContent = `${remaining} characters remaining`;
+      charLimitEl.classList.add("warn");
+    }
+    charLimitEl.classList.add("show");
   }
 
-  if (remaining <= 0) {
-    charLimitEl.textContent = `Character limit reached (${MESSAGE_CHAR_LIMIT})`;
-    charLimitEl.classList.add("show", "limit");
-    updateIndicatorRow();
-  }
-
-  if (remaining > CHAR_WARNING_AT) {
-    charLimitEl.textContent = "";
-  }
+  updateIndicatorRow();
 }
 
 function updateIndicatorRow() {
   const row = document.getElementById("indicatorRow");
-  const typing = document.getElementById("typingIndicator");
-  const charLimit = document.getElementById("charLimitIndicator");
+  const typingShow = document.getElementById("typingIndicator").classList.contains("show");
+  const charShow = document.getElementById("charLimitIndicator").classList.contains("show");
 
-  const visible = typing.classList.contains("show") || charLimit.classList.contains("show");
-  row.classList.toggle("active", visible);
+  row.classList.toggle("active", typingShow || charShow);
 }
 
 function showNewMsgIndicator() {
@@ -1806,7 +1802,7 @@ function applyHeat(amount) {
         updateIndicatorRow();
       }, 8000);
     }
-} */
+  } */
 
   if (heatSystem.heat >= 100) {
     triggerTimeout();
@@ -2948,7 +2944,7 @@ async function join(name, restoredInfo = null) {
           messageCount: 0
         },
 
-        badges: { starter: true },
+        badges: { Starter: true },
 
         typing: {
           typing: false,
@@ -3162,3 +3158,25 @@ setInterval(() => {
     if (!el.classList.contains("hidden")) el.textContent = timeAgo(ts);
   }
 }, 30000);
+
+const setAppHeight = () => {
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${vh}px`);
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+};
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", setAppHeight);
+  window.visualViewport.addEventListener("scroll", setAppHeight);
+}
+setAppHeight();
+
+let lastVH = window.visualViewport.height;
+window.visualViewport.addEventListener("resize", () => {
+  const vh = window.visualViewport.height;
+  if (vh < lastVH) {
+    document.body.style.overflow = "hidden";
+    messagesScroll.scrollTop += 280;
+  } else document.body.style.overflow = "";
+  lastVH = vh;
+});
