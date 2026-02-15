@@ -1068,6 +1068,7 @@ async function loadOlderMessages() {
       const el = createMessageElement({
         ...msg,
         icon: info.profileIcon || "zendra_blue",
+        googlePhotoURL: info.google?.IconURL || null,
         badges: info.badges || {}
       });
 
