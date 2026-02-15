@@ -1472,6 +1472,7 @@ window.addEventListener("keydown", (e) => {
     initAccountSettings();
     settingsModal.classList.remove("hidden");
   }
+<<<<<<< HEAD
 
   if (isModifier && e.key.toLowerCase() === "e") {
     e.preventDefault();
@@ -1492,6 +1493,11 @@ window.addEventListener("keydown", (e) => {
     emojiMenu.classList.remove("open");
     emojiReactionTarget = null;
     emojiOpenedFromReaction = false;
+=======
+  
+  if (e.key === "Escape") {
+    settingsModal.classList.add("hidden");
+>>>>>>> 7342d9111486c9ba30de5fffbc7b8485df405725
   }
 });
 
