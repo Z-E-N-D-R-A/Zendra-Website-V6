@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
+
+  <title>Zentral-Web | Chat</title>
+
+  <link href="../Assets/Icon.png" rel="icon">
+  <link rel="stylesheet" href="../CSS/chat.css">
+  <link rel="stylesheet" href="../CSS/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <img src="../Assets/Logo.png" alt="Logo">
+      <span>Zendra クレイジー</span>
+    </div>
+    <nav class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../videos.html">Videos</a>
+      <a href="../zentral.html"><b>Zentral</b></a>
+      <div class="dropdown">
+        <button class="dropbtn">More ▾</button>
+        <div class="dropdown-content">
+          <a href="../projects.html">Projects</a>
+          <a href="../newsletter.html">Newsletter</a>
+          <a href="../others.html">Others</a>
+        </div>
+      </div>
+    </nav>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <div class="chat-wrapper">
+    <button id="toggleSidebar" class="sidebar-toggle">
+      <div class="fa-solid fa fa-bars"></div>
+    </button>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-top">
+        <h2>Online Users</h2>
+        <div id="onlineCount" class="online-count">0 online</div>
+        <div id="presence" class="presence-list"></div>
+      </div>
+    
+      <div class="sidebar-bottom">
+        <div id="heat-container" class="heat-container">
+          <div class="heat-bar">
+            <div id="heat-fill"></div>
+          </div>
+          <div id="heat-percent">0%</div>
+        </div>
+    
+        <button id="upgradeGoogleBtn" class="sidebar-btn" style="display: none;">
+          <i class="fa-solid fab fa-google"></i>
+          <span>Connect Account</span>
+        </button>
+
+        <button id="sidebarSettingsBtn" class="sidebar-btn">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="window.location.href='../Chat/terms.html'">
+          <i class="fa-solid fas fa-address-book"></i>
+          <span>Terms & Conditions</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="window.location.href='../Chat/faq.html'">
+          <i class="fa-solid fas fa-question-circle"></i>
+          <span>FAQs</span>
+        </button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop"></div>
+
+    <main id="chat-area" class="chat-area">
+      <div id="newMsgIndicator" class="new-msg-indicator hidden">
+        <span id="newMsgText">↓ 0 New Messages ↓</span>
+      </div>
+
+      <div class="messages-scroll">
+        <div id="messages"></div>
+      </div>
+      
+      <button id="jumpToLatestBtn" class="jump-to-latest"> ↓ </button>
+      <div class="indicator-row" id="indicatorRow">
+        <div id="typingIndicator" class="typing-indicator"></div>
+        <div id="charLimitIndicator" class="char-limit-indicator"></div>
+      </div>
+
+      <div id="reply-bar" class="hidden">
+        <div class="reply-preview">
+          <strong id="reply-name"></strong>
+          <span id="reply-text"></span>
+        </div>
+        <button id="cancel-reply">×</button>
+      </div>
+      
+      <div class="input-bar" id="input-bar">
+        <textarea id="messageInput" placeholder="Type message..."></textarea>
+        
+        <button id="sendBtn">
+          <div class="fa-solid fas fa-paper-plane"></div> Send
+        </button>
+      </div>
+
+      <div class="timeout-bar" id="timeoutBar" style="display:none;">
+        <span class="timeout-text">⏳ You are timed out for <strong id="timeoutEnd"></strong></span>
+      </div>
+    </main>
+  </div>
+
+  <div id="mobile-action-sheet" class="mobile-action-sheet">
+    <div class="sheet-option" data-action="reply">
+      <div class="fa-solid fas fa-reply"></div> Reply
+    </div>
+    <div class="sheet-option" data-action="edit">
+      <div class="fa-solid fas fa-edit"></div> Edit
+    </div>
+    <div class="sheet-option" data-action="react">
+      <div class="fa-solid far fa-grin-squint"></div> React
+    </div>
+    <div class="sheet-option" data-action="copy">
+      <div class="fa-solid fas fa-copy"></div> Copy
+    </div>
+    <div class="sheet-option" data-action="delete">
+      <div class="fa-solid far fa-trash-alt"></div> Delete
+    </div>
+    <div class="sheet-option" data-action="report">
+      <div class="fa-solid fas fa-exclamation-triangle"></div> Report
+    </div>
+    <div class="sheet-cancel">Cancel</div>
+  </div>
+
+  <div id="reaction-picker" class="reaction-picker">
+    <span class="react">❤️</span>
+    <span class="react">👍</span>
+    <span class="react">💀</span>
+    <span class="react">😭</span>
+    <span class="react">😂</span>
+    <span class="react">🔥</span>
+  </div>
+  <div id="reaction-tooltip" class="reaction-tooltip hidden"></div>
+  <div id="badge-tooltip" class="tooltip hidden"></div>
+  
+  <div id="prompt" class="prompt">
+    <div class="prompt-container">
+  
+      <h3 class="prompt-header">Welcome to Zentral Chat</h3>
+  
+      <div class="prompt-section">
+        <div class="prompt-title"><b>Pick a Username</b></div>
+        <div class="prompt-description">
+          Start instantly as a guest. You can secure your account later.
+        </div>
+  
+        <input id="prompt-name" placeholder="Username" maxlength="30" />
+        <div id="prompt-error" class="prompt-error"></div>
+  
+        <button id="prompt-join" class="joinBtn">Enter as Guest</button>
+      </div>
+  
+      <div class="prompt-divider"><span>OR</span></div>
+  
+      <button id="prompt-google" class="google-btn">
+        <svg xmlns="http://www.w3.org" viewBox="0 0 48 48" width="20px" height="20px">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          <path fill="none" d="M0 0h48v48H0z" />
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+        
+      <div class="prompt-description center">
+        By continuing, you agree to the
+        <a href="../Chat/terms.html">Terms & Conditions</a>.
+      </div>
+    </div>
+  </div>
+    
+  <div id="google-username-prompt" class="prompt" style="display: none;">
+      <div class="prompt-container">
+        <h3 class="prompt-header">Almost There 🚀</h3>
+    
+        <div class="prompt-title"><b>Choose Your Display Name</b></div>
+        <div class="prompt-description">
+          Your Google account is connected.<br>
+          Pick the name others will see in chat.
+        </div>
+    
+        <input id="google-username-input" maxlength="30" />
+        <div id="google-username-error" class="prompt-error"></div>
+        <button id="google-username-confirm" class="joinBtn"> Create Account </button>
+      </div>
+  </div>
+
+  <div id="settingsModal" class="settings-modal hidden">
+    <div class="settings-modal-content">
+      <h3>User Settings <span style="font-size: 16px;">(@<span id="accountUsername">—</span>)</span></h3>
+  
+      <div class="setting-item account-setting" style="padding-top: 10px;">
+        <div class="account-item badge-row">
+          <span class="account-title">Badge</span>
+      
+          <div class="badge-selector">
+            <button id="badgeButton" class="badge-button">
+              <span id="equippedBadge">None ▾</span>‎
+            </button>
+      
+            <div id="badgeDropdown" class="badge-dropdown hidden">
+            </div>
+          </div>
+        </div>
+      
+        <div class="account-item level-row" style="margin-bottom: 5px;">
+          <span class="account-title">Level</span>
+          <span id="levelText" class="account-title">0</span>
+        </div>
+      
+        <div class="xp-bar">
+          <div id="xpFill"></div>
+        </div>
+      
+        <div class="account-text" id="xpText">0 / 0 ZXP</div>
+      </div>
+
+      <div class="setting-item icon-setting">
+        <span>Profile Icon</span>
+      
+        <div class="icon-carousel">
+          <button class="carousel-arrow left" id="iconPrev">❮</button>
+      
+          <div class="icon-viewport">
+            <div class="icon-grid" id="iconGrid"></div>
+          </div>
+      
+          <button class="carousel-arrow right" id="iconNext">❯</button>
+        </div>
+
+        <div class="google-icon-wrapper" id="googleIconWrapper"></div>
+      </div>
+  
+      <div class="setting-item theme-setting">
+        <span>Chat Theme</span>
+  
+        <div class="theme-carousel">
+          <button class="carousel-arrow left" id="themePrev">❮</button>
+  
+          <div class="theme-viewport">
+            <div class="theme-track" id="themeTrack"></div>
+          </div>
+  
+          <button class="carousel-arrow right" id="themeNext">❯</button>
+        </div>
+      </div>
+
+      <div class="setting-item" style="flex-direction: column; border-bottom: 0px;">
+        <div class="google-setting">
+          <span>Google Account</span>
+      
+          <div id="googleActionBtn" class="google-btn">
+            <svg xmlns="http://www.w3.org" viewBox="0 0 48 48" width="20px" height="20px">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              <path fill="none" d="M0 0h48v48H0z" />
+            </svg>
+            <span id="googleBtnText">Continue with Google</span>
+          </div>
+        </div>
+      
+        <div id="googleStatus" class="google-status">Checking...</div>
+      </div>
+  
+      <button id="closeSettings" class="close-settings-btn">Close</button>
+    </div>
+  </div>
+  
+  <div id="report-modal" class="report hidden">
+    <div id="reportBackdrop" class="backdrop"></div>
+  
+    <div class="report-card">
+      <h2>Report Message</h2>
+  
+      <p class="report-sub">Why are you reporting this message?</p>
+  
+      <div class="report-options">
+        <button class="report-option" data-reason="Harassment or bullying">Harassment or Bullying</button>
+        <button class="report-option" data-reason="Hate speech or racism">Hate speech or Racism</button>
+        <button class="report-option" data-reason="Sexual content">Sexual Content</button>
+        <button class="report-option" data-reason="Threats or self-harm">Threats or Self-harm</button>
+        <button class="report-option" data-reason="Spam or advertising">Spam or Advertising</button>
+        <button class="report-option" data-reason="Other">Other</button>
+      </div>
+  
+      <textarea id="report-custom-reason" placeholder="Report Reason (max 200 characters)" class="report-custom-reason hidden" maxlength="200"></textarea>
+
+      <div class="report-actions">
+        <div id="report-status" class="report-status"></div>
+      
+        <button id="report-submit" class="reportBtn sendReport">Send Report</button>
+        <button id="report-cancel" class="reportBtn cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="banned-screen" class="hidden">
+    <h1>🚫 You are banned</h1>
+    <p>This account has been permanently banned.</p>
+  </div>
+
+  <div id="mtn-screen" style="display: none;">
+    <h1>🚧 Server Maintenance</h1>
+    <p style="margin-top: 15px;">We are currently fixing and improving Zentral-Chat server.<br>Please check back in later. Sorry for the inconveniences.</p>
+  </div>
+
+  <div id="backdrop" class="backdrop"></div>
+
+  <script src="chat.js"></script>
+  <script>
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('keydown', event => {
+      if (event.key === 'F12' ||  (event.ctrlKey && event.shiftKey && event.key === 'I') ||  (event.ctrlKey && event.key === 'u')) {
+        event.preventDefault();
+      }
+    });
+
+    const headerEl = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      const maxOpacity = 0.45;
+      const maxBlur = 12;
+      const pct = Math.min(y / 300, 1);
+      headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+      headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+
+      if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+    });
+
+    const dropdown = document.querySelector('.dropdown');
+    const dropbtn = dropdown.querySelector('.dropbtn');
+    const dropdownContent = dropdown.querySelector('.dropdown-content');
+    let isDropdownOpen = false;
+
+    dropbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isDropdownOpen = !isDropdownOpen;
+      dropdown.classList.toggle('show', isDropdownOpen);
+    });
+    dropdown.addEventListener('mouseenter', () => {
+      dropdown.classList.add('show');
+      isDropdownOpen = true;
+    });
+    dropdown.addEventListener('mouseleave', (e) => {
+      const rect = dropdownContent.getBoundingClientRect();
+      const buffer = 60;
+      const checkMouse = (ev) => {
+        if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+          dropdown.classList.remove('show');
+          isDropdownOpen = false;
+          window.removeEventListener('mousemove', checkMouse);
+        }
+      };
+      window.addEventListener('mousemove', checkMouse);
+    });
+
+    window.addEventListener('scroll', () => {
+      dropdown.classList.remove('show');
+      isDropdownOpen = false;
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+        isDropdownOpen = false;
+      }
+    });
+
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+  </script>
+  </body>
+</html>
