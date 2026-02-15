@@ -2878,12 +2878,6 @@ messagesViewport?.addEventListener("scroll", () => {
   hideReactionTooltip();
   hideBadgeTooltip();
   closeReactionPicker();
-
-  if (emojiOpenedFromReaction && !isMobile) {
-    emojiMenu.classList.remove("open");
-    emojiReactionTarget = null;
-    emojiOpenedFromReaction = false;
-  }
 }, { passive: true });
 
 window.addEventListener("resize", () => {
