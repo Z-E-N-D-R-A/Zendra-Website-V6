@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width = device-width, initial-scale = 1.0" />
+  <title>Zentral-Web | Feb 15 2026 News</title>
+
+  <link href="../../Assets/Icon.png" rel="icon">
+  <link href="../../CSS/style.css" rel="stylesheet">
+  <link href="../../CSS/others.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="../../Assets/Logo.png" alt="Logo">
+            <span>Zendra クレイジー</span>
+        </div>
+        <nav class="nav-links">
+            <a href="../../index.html">Home</a>
+            <a href="../../videos.html">Videos</a>
+            <a href="../../zentral.html">Zentral</a>
+            <div class="dropdown">
+                <button class="dropbtn">More ▾</button>
+                <div class="dropdown-content">
+                    <a href="../../projects.html">Projects</a>
+                    <a href="../../newsletter.html"><b>Newsletter</b></a>
+                    <a href="../../others.html">Others</a>
+                </div>
+            </div>
+        </nav>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </header>
+
+    <div class="news">
+        <div class="news-container">
+            <div class="news-heading">Zentral-Chat Emergency Maintenance (v6.0.1)</div>
+            <div class="news-date">15 February 2026</div>
+            <div class="news-subheading">
+                With the launch of Zentral-Chat few days ago, we have discovered serveral security loopholes. We have already patched it
+                with this update (v6.0.1), and would like to talk about the issue and our solution in this article.
+            </div>
+            
+            <div class="news-card">
+                <div class="news-title">Security Updates</div>
+                <div class="news-text">
+                    In order to allow account recovery on Zentral-Chat v6.0.0, we have assigned each user with a recovery code and accountId.
+                    With that code, you will be able to unlock the accountId and login into your account. This is a simple yet effective recovery
+                    system. However, it creates a few privacy and security issues.<br><br>
+                    First of all, accountId is not directly tied to your browser. This would allow anonymous users to access your account and data
+                    since there is no way of restricting them. In addition, to allow recovery code verifications within frontend, all recovery codes
+                    had to be made public. Anyone can find someone else's recovery code and login into their accounts.<br><br>
+                    Our goal is to create a free and safe chat service for our community. However, with these two main issues, accounts are insecure
+                    and we know recovery code system is not ideal. Therefore, we temporarily disabled Zentral-Chat few days ago to rework the account
+                    system completely.<br><br>
+                    Accounts are now linked with browser by default. Only you in your browser has access to your account and see your data.
+                    And to make it possible to recovery accounts or login on other devices, we have added the option to connect your account with Google.
+                    In that case, your account will be linked to your Google account instead, allow you to access your account on multiple devices by
+                    logging into Google. If you would like to connect Google, you may still sign in as anonymous just like before, except it is impossible to recovery account
+                    once lost.<br><br>
+                    But, since accounts system has been completely reworked, all previously created accounts and sent messages have been removed. Please
+                    create a new account if you would like to continue chatting. Sorry for the inconveniences.<br><br>
+                    With this update, we have resolved the security issues and allow a safer place for you to chat. 
+                </div>
+            </div>
+
+            <div class="news-card">
+                <div class="news-title">Other Changes</div>
+                <div class="news-text">
+                    Apart from account and security updates, we have also improved a few features in Zentral-Chat.
+                </div>
+                <ul>
+                    <li>Added Terms & Condition and FAQ buttons in sidebar</li>
+                    <li>Added sidebar animations when expanded/collapsed</li>
+                    <li>Added jump to latest button when scrolled up</li>
+                    <li>Added keyboard shortcut for opening Settings (Control/Command + ,)</li>
+                    <li>Added Google account profile icon as option when connected</li>
+                    <li>Improved new message indicator with better visual & display of no. of messages</li>
+                    <li>Improved visual of reaction badges</li>
+                    <li>Improved visual of settings</li>
+                    <li>Fixed presence system showing unknown users</li>
+                    <li>Fixed indicator bar acting weirdly</li>
+                    <li>Fixed username not being case sensetive</li>
+                    <li>Fixed input bar highlight when selected</li>
+                    <li>Fixed incorrect report message limit</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="news-nav">
+            <button id="prevBtn" class="nav-btn">←</button>
+            <button id="nextBtn" class="nav-btn">→</button>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="footer-socials">
+            <a href="https://www.youtube.com/@zendra_brawl" target="_blank"><i class="fab fa-youtube yt-hover"></i></a>
+            <a href="https://www.instagram.com/zendra_brawl/" target="_blank"><i class="fab fa-instagram ig-hover"></i></a>
+            <a href="http://www.tiktok.com/@zendra_brawl" target="_blank"><i class="fab fa-tiktok tk-hover"></i></a>
+            <a href="https://discord.gg/VbUFdhEjNq" target="_blank"><i class="fab fa-discord dc-hover"></i></a>
+            <a href="https://www.twitch.tv/zendra_brawl" target="_blank"><i class="fab fa-twitch tw-hover"></i></a>
+            <a href="https://twitter.com/zendra_brawl" target="_blank"><i class="fab fa-x-twitter x-hover"></i></a>
+        </div>
+        2026 Zentral-Web | Powered by KuraWorks
+    </footer>
+    
+    <script>
+        document.documentElement.style.setProperty("--heading", "linear-gradient(135deg, #ff2200, #e600ff)");
+        document.documentElement.style.setProperty("--title", "#00ddff");
+        document.documentElement.style.setProperty("--border", "rgb(0, 191, 255)");
+        const cards = document.querySelectorAll(".news-card");
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.style.opacity = 1;
+                    e.target.style.transform = "translateY(0)";
+                }
+            });
+        }, { threshold: 0.15 });
+
+        cards.forEach(c => {
+            c.style.opacity = 0;
+            c.style.transform = "translateY(20px)";
+            c.style.transition = "all 0.6s ease";
+            observer.observe(c);
+        });
+
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+
+        const match = window.location.pathname.match(/news(\d+)\.html$/);
+        if (!match) {
+            prevBtn.onclick = () => window.location.href = "../../newsletter.html";
+            nextBtn.onclick = () => window.location.href = "../../newsletter.html";
+        } else {
+            const current = parseInt(match[1], 10);
+
+            const prevPage = `news${current - 1}.html`;
+            const nextPage = `news${current + 1}.html`;
+
+            checkPage(prevPage, exists => {
+                if (exists) {
+                    prevBtn.onclick = () => window.location.href = prevPage;
+                } else {
+                    prevBtn.onclick = () => window.location.href = "../../newsletter.html";
+                }
+            });
+
+            checkPage(nextPage, exists => {
+                if (exists) {
+                    nextBtn.onclick = () => window.location.href = nextPage;
+                } else {
+                    nextBtn.onclick = () => window.location.href = "../../newsletter.html";
+                }
+            });
+        }
+
+        function checkPage(url, callback) {
+            fetch(url, { method: "HEAD" }).then(res => callback(res.ok)).catch(() => callback(false));
+        }
+
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', event => {
+            if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I') || (event.ctrlKey && event.key === 'u')) {
+                event.preventDefault();
+            }
+        });
+        
+        const headerEl = document.querySelector('header');
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            const maxOpacity = 0.45;
+            const maxBlur = 12;
+            const pct = Math.min(y / 300, 1);
+            headerEl.style.background = `rgba(0,0,0,${(pct * maxOpacity).toFixed(3)})`;
+            headerEl.style.backdropFilter = `blur(${(pct * maxBlur).toFixed(2)}px)`;
+
+            if (y > 10) headerEl.classList.add('scrolled'); else headerEl.classList.remove('scrolled');
+        });
+
+        const dropdown = document.querySelector('.dropdown');
+        const dropbtn = dropdown.querySelector('.dropbtn');
+        const dropdownContent = dropdown.querySelector('.dropdown-content');
+        let isDropdownOpen = false;
+
+        dropbtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isDropdownOpen = !isDropdownOpen;
+            dropdown.classList.toggle('show', isDropdownOpen);
+        });
+        dropdown.addEventListener('mouseenter', () => {
+            dropdown.classList.add('show');
+            isDropdownOpen = true;
+        });
+        dropdown.addEventListener('mouseleave', (e) => {
+            const rect = dropdownContent.getBoundingClientRect();
+            const buffer = 60;
+            const checkMouse = (ev) => {
+                if (ev.clientX < rect.left - buffer || ev.clientX > rect.right + buffer || ev.clientY < rect.top - buffer || ev.clientY > rect.bottom + buffer) {
+                    dropdown.classList.remove('show');
+                    isDropdownOpen = false;
+                    window.removeEventListener('mousemove', checkMouse);
+                }
+            };
+            window.addEventListener('mousemove', checkMouse);
+        });
+
+        window.addEventListener('scroll', () => {
+            dropdown.classList.remove('show');
+            isDropdownOpen = false;
+        });
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+                isDropdownOpen = false;
+            }
+        });
+
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
